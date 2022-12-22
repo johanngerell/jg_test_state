@@ -20,6 +20,6 @@ endif ()
 
 include_directories(${PROJECT_SOURCE_DIR}/inc)
 
-add_library(jg_test_state INTERFACE)
+add_library(jg_test_state INTERFACE inc/jg_test_state.h)
 
 add_subdirectory(test)
