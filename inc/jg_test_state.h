@@ -108,13 +108,22 @@ void surround(std::ostream& stream, const std::string& text, const char* left, c
 void quote(std::ostream& stream, const char* text);
 void quote(std::ostream& stream, const std::string& text);
 
-template <typename T, typename std::enable_if<!std::is_base_of<std::string, T>::value && !std::is_same<void*, T>::value && !std::is_same<const void*, T>::value, T>::type* = nullptr>
+template <typename T>
+using is_string = std::is_base_of<std::string, T>;
+
+template <typename T>
+using is_voidptr = std::is_same<void*, T>;
+
+template <typename T>
+using is_const_voidptr = std::is_same<const void*, T>;
+
+template <typename T, typename std::enable_if<!is_string<T>::value && !is_voidptr<T>::value && !is_const_voidptr<T>::value, T>::type* = nullptr>
 void value(std::ostream& stream, const T& value);
 
-template <typename T, typename std::enable_if<std::is_base_of<std::string, T>::value, T>::type* = nullptr>
+template <typename T, typename std::enable_if<is_string<T>::value, T>::type* = nullptr>
 void value(std::ostream& stream, const T& value);
 
-template <typename T, typename std::enable_if<std::is_same<void*, T>::value || std::is_same<const void*, T>::value, T>::type* = nullptr>
+template <typename T, typename std::enable_if<is_voidptr<T>::value || is_const_voidptr<T>::value, T>::type* = nullptr>
 void value(std::ostream& stream, const T& value);
 
 void value(std::ostream& stream, const char* value);
@@ -341,19 +350,19 @@ inline void quote(std::ostream& stream, const std::string& text)
     return quote(stream, text.c_str());
 }
 
-template <typename T, typename std::enable_if<!std::is_base_of<std::string, T>::value && !std::is_same<void*, T>::value && !std::is_same<const void*, T>::value, T>::type*>
+template <typename T, typename std::enable_if<!is_string<T>::value && !is_voidptr<T>::value && !std::is_same<const void*, T>::value, T>::type*>
 void value(std::ostream& stream, const T& value)
 {
     stream << value;
 }
 
-template <typename T, typename std::enable_if<std::is_base_of<std::string, T>::value, T>::type*>
+template <typename T, typename std::enable_if<is_string<T>::value, T>::type*>
 void value(std::ostream& stream, const T& value)
 {
     quote(stream, value);
 }
 
-template <typename T, typename std::enable_if<std::is_same<void*, T>::value || std::is_same<const void*, T>::value, T>::type*>
+template <typename T, typename std::enable_if<is_voidptr<T>::value || is_const_voidptr<T>::value, T>::type*>
 void value(std::ostream& stream, const T& value)
 {
     stream << "0x"
