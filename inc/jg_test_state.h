@@ -9,9 +9,10 @@
 namespace jg {
 namespace test_state {
 
+class prefix;
+class formatted;
 class value;
 class property;
-class prefix;
 
 class output
 {
@@ -19,14 +20,14 @@ public:
     output() = default;
 
     output(prefix prefix);
-    output(const property& property);
-    output(const value& value);
+    output(value value);
+    output(property property);
 
-    output(prefix prefix, const property& property);
-    output(prefix prefix, const value& value);
+    output(prefix prefix, value value);
+    output(prefix prefix, property property);
 
-    output& operator+=(const property& property);
-    output& operator+=(const value& value);
+    output& operator+=(value value);
+    output& operator+=(property property);
 
     friend std::ostream& operator<<(std::ostream& stream, const output& output)
     {
@@ -38,25 +39,12 @@ private:
     std::string m_formatted;
 };
 
-class prefix
-{
-public:
-    prefix() = default;
-    explicit prefix(std::string value);
-    operator std::string() const;
-    static prefix google_test();
-
-private:
-    std::string m_value;
-};
-
 class value
 {
 public:
+    value(formatted formatted);
     template <typename T> value(const T& value);
     template <typename T> value(std::initializer_list<T> values);
-
-    static value formatted(std::string string);
 
     friend std::ostream& operator<<(std::ostream& stream, const value& value)
     {
@@ -87,6 +75,29 @@ public:
 
 private:
     std::string m_formatted;
+};
+
+class prefix
+{
+public:
+    prefix() = default;
+    explicit prefix(std::string value);
+    operator std::string() const;
+    static prefix google_test();
+
+private:
+    std::string m_value;
+};
+
+class formatted
+{
+public:
+    formatted() = default;
+    explicit formatted(std::string value);
+    operator std::string() const;
+
+private:
+    std::string m_value;
 };
 
 namespace detail {
@@ -122,6 +133,10 @@ private:
 
 } // namespace detail
 
+inline value::value(formatted formatted)
+    : m_formatted{formatted}
+{}
+
 template <typename T>
 value::value(const T& value)
 {
@@ -150,64 +165,57 @@ value::value(std::initializer_list<T> values)
     m_formatted = stream.str();
 }
 
-inline value value::formatted(std::string string)
-{
-    value value;
-    value.m_formatted = string;
-    return value;
-}
-
 inline value object(std::initializer_list<property> properties)
 {
     detail::append_after_first_call append_comma{", "};
-    std::string formatted;
+    std::string formatted_;
     for (const auto& property : properties) {
         std::ostringstream stream;
         append_comma(stream) << property;
-        formatted += stream.str();
+        formatted_ += stream.str();
     }
 
     std::ostringstream stream;
-    detail::surround(stream, formatted, "{", "}");
-    formatted = stream.str();
+    detail::surround(stream, formatted_, "{", "}");
+    formatted_ = stream.str();
 
-    return value::formatted(formatted);
+    return value(formatted(formatted_));
 }
 
 inline value array(std::initializer_list<value> values)
 {
     detail::append_after_first_call append_comma{", "};
-    std::string formatted;
+    std::string formatted_;
     for (const auto& value : values) {
         std::ostringstream stream;
         append_comma(stream) << value;
-        formatted += stream.str();
+        formatted_ += stream.str();
     }
 
     std::ostringstream stream;
-    detail::surround(stream, formatted, "[", "]");
-    formatted = stream.str();
+    detail::surround(stream, formatted_, "[", "]");
+    formatted_ = stream.str();
 
-    return value::formatted(formatted);
+    return value(formatted(formatted_));
 }
 
 template <typename TIterator>
 value array(TIterator first_value, TIterator last_value)
 {
     detail::append_after_first_call append_comma{", "};
-    std::string formatted;
+    std::string formatted_;
     for (TIterator it = first_value; it != last_value; ++it) {
         std::ostringstream stream;
         append_comma(stream);
         detail::value(stream, *it);
-        formatted += stream.str();
+        formatted_ += stream.str();
     }
 
     std::ostringstream stream;
-    detail::surround(stream, formatted, "[", "]");
-    formatted = stream.str();
+    detail::surround(stream, formatted_, "[", "]");
+    formatted_ = stream.str();
 
-    return value::formatted(formatted);
+    return value(formatted(formatted_));
 }
 
 template <typename TContainer>
@@ -255,33 +263,42 @@ inline prefix prefix::google_test()
     return prefix{"[    STATE ] "};
 }
 
+inline formatted::formatted(std::string value)
+    : m_value{std::move(value)}
+{}
+
+inline formatted::operator std::string() const
+{
+    return m_value;
+}
+
 inline output::output(prefix prefix)
     : m_prefix{prefix}
 {}
 
-inline output::output(const value& value)
+inline output::output(value value)
 {
     *this += value;
 }
 
-inline output::output(const property& property)
+inline output::output(property property)
 {
     *this += property;
 }
 
-inline output::output(prefix prefix, const property& property)
+inline output::output(prefix prefix, property property)
     : m_prefix{prefix}
 {
     *this += property;
 }
 
-inline output::output(prefix prefix, const value& value)
+inline output::output(prefix prefix, value value)
     : m_prefix{prefix}
 {
     *this += value;
 }
 
-inline output& output::operator+=(const property& property)
+inline output& output::operator+=(property property)
 {
     std::ostringstream stream;
     stream << (!m_formatted.empty() ? "\n" : "") << m_prefix;
@@ -290,7 +307,7 @@ inline output& output::operator+=(const property& property)
     return *this;
 }
 
-inline output& output::operator+=(const value& value)
+inline output& output::operator+=(value value)
 {
     std::ostringstream stream;
     stream << (!m_formatted.empty() ? "\n" : "") << m_prefix;
