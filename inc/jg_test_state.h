@@ -11,20 +11,14 @@ namespace test_state {
 
 class value;
 class property;
-
-struct prefix
-{
-    std::string value;
-    operator std::string() const;
-    static prefix google_test();
-};
+class prefix;
 
 class output
 {
 public:
     output() = default;
 
-    explicit output(prefix prefix);
+    output(prefix prefix);
     output(const property& property);
     output(const value& value);
 
@@ -42,6 +36,18 @@ public:
 private:
     std::string m_prefix;
     std::string m_formatted;
+};
+
+class prefix
+{
+public:
+    prefix() = default;
+    explicit prefix(std::string value);
+    operator std::string() const;
+    static prefix google_test();
+
+private:
+    std::string m_value;
 };
 
 class value
@@ -235,14 +241,18 @@ inline property::property(const char* name, std::initializer_list<value> values)
     m_formatted = stream.str();
 }
 
+inline prefix::prefix(std::string value)
+    : m_value{std::move(value)}
+{}
+
 inline prefix::operator std::string() const
 {
-    return value;
+    return m_value;
 }
 
 inline prefix prefix::google_test()
 {
-    return {"[    STATE ] "};
+    return prefix{"[    STATE ] "};
 }
 
 inline output::output(prefix prefix)
