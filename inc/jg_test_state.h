@@ -12,20 +12,24 @@ namespace test_state {
 class value;
 class property;
 
+struct prefix
+{
+    std::string value;
+    operator std::string() const;
+    static prefix google_test();
+};
+
 class output
 {
 public:
     output() = default;
+
+    explicit output(prefix prefix);
     output(const property& property);
     output(const value& value);
 
-    static output with_prefix(std::string prefix);
-    static output with_prefix(std::string prefix, const property& property);
-    static output with_prefix(std::string prefix, const value& value);
-
-    static output with_google_test_prefix();
-    static output with_google_test_prefix(const property& property);
-    static output with_google_test_prefix(const value& value);
+    output(prefix prefix, const property& property);
+    output(prefix prefix, const value& value);
 
     output& operator+=(const property& property);
     output& operator+=(const value& value);
@@ -231,6 +235,20 @@ inline property::property(const char* name, std::initializer_list<value> values)
     m_formatted = stream.str();
 }
 
+inline prefix::operator std::string() const
+{
+    return value;
+}
+
+inline prefix prefix::google_test()
+{
+    return {"[    STATE ] "};
+}
+
+inline output::output(prefix prefix)
+    : m_prefix{prefix}
+{}
+
 inline output::output(const value& value)
 {
     *this += value;
@@ -241,42 +259,16 @@ inline output::output(const property& property)
     *this += property;
 }
 
-inline output output::with_prefix(std::string prefix)
+inline output::output(prefix prefix, const property& property)
+    : m_prefix{prefix}
 {
-    output output;
-    output.m_prefix = prefix;
-    return output;
+    *this += property;
 }
 
-inline output output::with_prefix(std::string prefix, const property& property)
+inline output::output(prefix prefix, const value& value)
+    : m_prefix{prefix}
 {
-    output output;
-    output.m_prefix = prefix;
-    output += property;
-    return output;
-}
-
-inline output output::with_prefix(std::string prefix, const value& value)
-{
-    output output;
-    output.m_prefix = prefix;
-    output += value;
-    return output;
-}
-
-inline output output::with_google_test_prefix()
-{
-    return with_prefix("[    STATE ] ");
-}
-
-inline output output::with_google_test_prefix(const property& property)
-{
-    return with_prefix("[    STATE ] ", property);
-}
-
-inline output output::with_google_test_prefix(const value& value)
-{
-    return with_prefix("[    STATE ] ", value);
+    *this += value;
 }
 
 inline output& output::operator+=(const property& property)

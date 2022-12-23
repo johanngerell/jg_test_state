@@ -90,50 +90,50 @@ static void test_ctors_simple_value()
 static void test_static_ctors_simple_value()
 {
     {
-        output state{output::with_prefix("prefix: ", vector2d{1,2})};
+        output state(prefix{"prefix: "}, vector2d{1,2});
         assert(to_string(state) == "prefix: (1,2)");
     }
 
     {
-        output state{output::with_prefix("prefix: ", 4711)};
+        output state(prefix{"prefix: "}, 4711);
         assert(to_string(state) == "prefix: 4711");
     }
 
     {
-        output state{output::with_prefix("prefix: ", true)};
+        output state(prefix{"prefix: "}, true);
         assert(to_string(state) == "prefix: true");
     }
 
     {
-        output state{output::with_prefix("prefix: ", false)};
+        output state(prefix{"prefix: "}, false);
         assert(to_string(state) == "prefix: false");
     }
 
     {
-        output state{output::with_prefix("prefix: ", "foo")};
+        output state(prefix{"prefix: "}, "foo");
         assert(to_string(state) == "prefix: \"foo\"");
     }
 
     {
-        output state{output::with_prefix("prefix: ", std::string{"bar"})};
+        output state(prefix{"prefix: "}, std::string{"bar"});
         assert(to_string(state) == "prefix: \"bar\"");
     }
 
     {
         const float pi = 3.1415926f;
-        output state{output::with_prefix("prefix: ", pi)};
+        output state(prefix{"prefix: "}, pi);
         assert(to_string(state).substr(0, 13) == "prefix: 3.141");
     }
 
     {
         const double pi = 3.1415926;
-        output state{output::with_prefix("prefix: ", pi)};
+        output state(prefix{"prefix: "}, pi);
         assert(to_string(state).substr(0, 13) == "prefix: 3.141");
     }
 
     {
         const uintptr_t deadbeef = 0x00000000DEADBEEF;
-        output state{output::with_prefix("prefix: ", reinterpret_cast<const void*>(deadbeef))};
+        output state(prefix{"prefix: "}, reinterpret_cast<const void*>(deadbeef));
         assert(to_string(state) == "prefix: 0x00000000deadbeef");
     }
 }
@@ -254,57 +254,6 @@ static void test_ctors_simple_property()
     }
 }
 
-static void test_static_ctors_simple_property()
-{
-    {
-        output state{output::with_prefix("prefix: ", {"name", vector2d{1,2}})};
-        assert(to_string(state) == "prefix: \"name\": (1,2)");
-    }
-
-    {
-        output state{output::with_prefix("prefix: ", {"name", 4711})};
-        assert(to_string(state) == "prefix: \"name\": 4711");
-    }
-
-    {
-        output state{output::with_prefix("prefix: ", {"name", true})};
-        assert(to_string(state) == "prefix: \"name\": true");
-    }
-
-    {
-        output state{output::with_prefix("prefix: ", {"name", false})};
-        assert(to_string(state) == "prefix: \"name\": false");
-    }
-
-    {
-        output state{output::with_prefix("prefix: ", property{"name", "foo"})};
-        assert(to_string(state) == "prefix: \"name\": \"foo\"");
-    }
-
-    {
-        output state{output::with_prefix("prefix: ", {"name", std::string{"bar"}})};
-        assert(to_string(state) == "prefix: \"name\": \"bar\"");
-    }
-
-    {
-        const float pi = 3.1415926f;
-        output state{output::with_prefix("prefix: ", {"name", pi})};
-        assert(to_string(state).substr(0, 21) == "prefix: \"name\": 3.141");
-    }
-
-    {
-        const double pi = 3.1415926;
-        output state{output::with_prefix("prefix: ", {"name", pi})};
-        assert(to_string(state).substr(0, 21) == "prefix: \"name\": 3.141");
-    }
-
-    {
-        const uintptr_t deadbeef = 0x00000000DEADBEEF;
-        output state{output::with_prefix("prefix: ", {"name", reinterpret_cast<const void*>(deadbeef)})};
-        assert(to_string(state) == "prefix: \"name\": 0x00000000deadbeef");
-    }
-}
-
 static void test_prefix()
 {
     {
@@ -317,7 +266,7 @@ static void test_prefix()
     }
 
     {
-        output state = output::with_prefix("prefix: ");
+        output state{prefix{"prefix: "}};
         state += 1;
         state += 2;
         state += 3;
@@ -326,32 +275,41 @@ static void test_prefix()
     }
 
     {
-        output state = output::with_prefix("prefix: ", 1);
+        output state(prefix{"prefix: "});
+        state += 1;
+        state += 2;
+        state += 3;
+
+        assert(to_string(state) == "prefix: 1\nprefix: 2\nprefix: 3");
+    }
+
+    {
+        output state(prefix{"prefix: "}, 1);
         assert(to_string(state) == "prefix: 1");
     }
 
     {
-        output state = output::with_prefix("prefix: ", {"one", 1});
+        output state(prefix{"prefix: "}, {"one", 1});
         assert(to_string(state) == "prefix: \"one\": 1");
     }
 
     {
-        output state = output::with_prefix("prefix: ", object({{"one", 1}}));
+        output state(prefix{"prefix: "}, object({{"one", 1}}));
         assert(to_string(state) == "prefix: { \"one\": 1 }");
     }
 
     {
-        output state = output::with_prefix("prefix: ", array({1, 2}));
+        output state(prefix{"prefix: "}, array({1, 2}));
         assert(to_string(state) == "prefix: [ 1, 2 ]");
     }
 
     {
-        output state = output::with_prefix("prefix: ", array({"two", 2}));
+        output state(prefix{"prefix: "}, array({"two", 2}));
         assert(to_string(state) == "prefix: [ \"two\", 2 ]");
     }
 
     {
-        output state = output::with_google_test_prefix();
+        output state(prefix::google_test());
         state += 1;
         state += 2;
         state += 3;
@@ -362,27 +320,27 @@ static void test_prefix()
     //
 
     {
-        output state = output::with_google_test_prefix(1);
+        output state(prefix::google_test(), 1);
         assert(to_string(state) == "[    STATE ] 1");
     }
 
     {
-        output state = output::with_google_test_prefix({"one", 1});
+        output state(prefix::google_test(), {"one", 1});
         assert(to_string(state) == "[    STATE ] \"one\": 1");
     }
 
     {
-        output state = output::with_google_test_prefix(object({{"one", 1}}));
+        output state(prefix::google_test(), object({{"one", 1}}));
         assert(to_string(state) == "[    STATE ] { \"one\": 1 }");
     }
 
     {
-        output state = output::with_google_test_prefix(array({1, 2}));
+        output state(prefix::google_test(), array({1, 2}));
         assert(to_string(state) == "[    STATE ] [ 1, 2 ]");
     }
 
     {
-        output state = output::with_google_test_prefix(array({"two", 2}));
+        output state(prefix::google_test(), array({"two", 2}));
         assert(to_string(state) == "[    STATE ] [ \"two\", 2 ]");
     }
 }
@@ -814,6 +772,5 @@ int main()
     test_static_ctors_simple_value();
     test_ctors_complex_value();
     test_ctors_simple_property();
-    test_static_ctors_simple_property();
     test_ctors_complex_property();
 }
