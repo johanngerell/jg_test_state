@@ -120,12 +120,8 @@ using is_const_voidptr = std::is_same<const void*, T>;
 template <typename T, typename std::enable_if<!is_string<T>::value && !is_voidptr<T>::value && !is_const_voidptr<T>::value, T>::type* = nullptr>
 void value(std::ostream& stream, const T& value);
 
-template <typename T, typename std::enable_if<is_string<T>::value, T>::type* = nullptr>
-void value(std::ostream& stream, const T& value);
-
-template <typename T, typename std::enable_if<is_voidptr<T>::value || is_const_voidptr<T>::value, T>::type* = nullptr>
-void value(std::ostream& stream, const T& value);
-
+void value(std::ostream& stream, const std::string& value);
+void value(std::ostream& stream, const void* value);
 void value(std::ostream& stream, const char* value);
 void value(std::ostream& stream, bool value);
 
@@ -356,14 +352,12 @@ void value(std::ostream& stream, const T& value)
     stream << value;
 }
 
-template <typename T, typename std::enable_if<is_string<T>::value, T>::type*>
-void value(std::ostream& stream, const T& value)
+void value(std::ostream& stream, const std::string& value)
 {
     quote(stream, value);
 }
 
-template <typename T, typename std::enable_if<is_voidptr<T>::value || is_const_voidptr<T>::value, T>::type*>
-void value(std::ostream& stream, const T& value)
+inline void value(std::ostream& stream, const void* value)
 {
     stream << "0x"
            << std::hex

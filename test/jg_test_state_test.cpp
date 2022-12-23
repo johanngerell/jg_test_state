@@ -81,6 +81,12 @@ static void test_ctors_simple_value()
     }
 
     {
+        uintptr_t deadbeef = 0x00000000DEADBEEF;
+        output state{reinterpret_cast<void*>(deadbeef)};
+        assert(to_string(state) == "0x00000000deadbeef");
+    }
+
+    {
         const uintptr_t deadbeef = 0x00000000DEADBEEF;
         output state{reinterpret_cast<const void*>(deadbeef)};
         assert(to_string(state) == "0x00000000deadbeef");
@@ -129,6 +135,12 @@ static void test_static_ctors_simple_value()
         const double pi = 3.1415926;
         output state(prefix{"prefix: "}, pi);
         assert(to_string(state).substr(0, 13) == "prefix: 3.141");
+    }
+
+    {
+        uintptr_t deadbeef = 0x00000000DEADBEEF;
+        output state(prefix{"prefix: "}, reinterpret_cast<void*>(deadbeef));
+        assert(to_string(state) == "prefix: 0x00000000deadbeef");
     }
 
     {
@@ -245,6 +257,12 @@ static void test_ctors_simple_property()
         const double pi = 3.1415926;
         output state{{"name", pi}};
         assert(to_string(state).substr(0, 13) == "\"name\": 3.141");
+    }
+
+    {
+        uintptr_t deadbeef = 0x00000000DEADBEEF;
+        output state{{"name", reinterpret_cast<void*>(deadbeef)}};
+        assert(to_string(state) == "\"name\": 0x00000000deadbeef");
     }
 
     {
@@ -520,6 +538,20 @@ static void test_value()
     }
 
     {
+        uintptr_t dummy_address = 0x00000000deadbeef;
+        void* dummy_pointer = reinterpret_cast<void*>(dummy_address);
+
+        value v1(dummy_pointer);
+        assert(to_string(v1) == "0x00000000deadbeef");
+
+        value v2({dummy_pointer});
+        assert(to_string(v2) == "[ 0x00000000deadbeef ]");
+
+        value v3{dummy_pointer};
+        assert(to_string(v3) == "[ 0x00000000deadbeef ]");
+    }
+
+    {
         const uintptr_t dummy_address = 0x00000000deadbeef;
         const void* dummy_pointer = reinterpret_cast<void*>(dummy_address);
 
@@ -654,6 +686,23 @@ static void test_property()
     }
 
     {
+        uintptr_t dummy_address = 0x00000000deadbeef;
+        void* dummy_pointer = reinterpret_cast<void*>(dummy_address);
+
+        property p1("p1", dummy_pointer);
+        assert(to_string(p1) == R"("p1": 0x00000000deadbeef)");
+
+        property p2("p2", {dummy_pointer});
+        assert(to_string(p2) == R"("p2": [ 0x00000000deadbeef ])");
+
+        property p3{"p3", dummy_pointer};
+        assert(to_string(p3) == R"("p3": 0x00000000deadbeef)");
+
+        property p4{"p4", {dummy_pointer}};
+        assert(to_string(p4) == R"("p4": [ 0x00000000deadbeef ])");
+    }
+
+    {
         const uintptr_t dummy_address = 0x00000000deadbeef;
         const void* dummy_pointer = reinterpret_cast<void*>(dummy_address);
 
@@ -752,8 +801,11 @@ static void test_property()
         property p7 = {"p7", {4711, "4712", {value(false), value(0), value(""), value((void*)0)}, true}};
         assert(to_string(p7) == R"("p7": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
 
-        property p8 = {"p8", {4711, "4712", array({false, 0, "", (void*)0}), true}};
+        property p8 = {"p8", {4711, "4712", {value(false), value(0), value(""), value((const void*)0)}, true}};
         assert(to_string(p8) == R"("p8": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
+
+        property p9 = {"p9", {4711, "4712", array({false, 0, "", (void*)0}), true}};
+        assert(to_string(p9) == R"("p9": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
     }
 }
 
