@@ -99,6 +99,17 @@ void value(std::ostream& stream, const T& value);
 void value(std::ostream& stream, const char* value);
 void value(std::ostream& stream, bool value);
 
+class append_after_first_call
+{
+public:
+    append_after_first_call(std::string string);
+    std::ostream& operator()(std::ostream& stream);
+
+private:
+    bool m_after_first{false};
+    std::string m_string;
+};
+
 } // namespace detail
 
 template <typename T>
@@ -116,9 +127,10 @@ value::value(std::initializer_list<T> values)
 {
     static_assert(!std::is_base_of<property, T>::value, "A 'value' cannot be constructed from 'initializer_list<property>'");
 
+    detail::append_after_first_call append_comma{", "};
     for (const auto& value : values) {
         std::ostringstream stream;
-        stream << (!m_formatted.empty() ? ", " : "");
+        append_comma(stream);
         detail::value(stream, value);
         m_formatted += stream.str();
     }
@@ -137,11 +149,11 @@ inline value value::formatted(std::string string)
 
 inline value object(std::initializer_list<property> properties)
 {
+    detail::append_after_first_call append_comma{", "};
     std::string formatted;
     for (const auto& property : properties) {
         std::ostringstream stream;
-        stream << (!formatted.empty() ? ", " : "");
-        stream << property;
+        append_comma(stream) << property;
         formatted += stream.str();
     }
 
@@ -154,11 +166,11 @@ inline value object(std::initializer_list<property> properties)
 
 inline value array(std::initializer_list<value> values)
 {
+    detail::append_after_first_call append_comma{", "};
     std::string formatted;
     for (const auto& value : values) {
         std::ostringstream stream;
-        stream << (!formatted.empty() ? ", " : "");
-        stream << value;
+        append_comma(stream) << value;
         formatted += stream.str();
     }
 
@@ -172,10 +184,11 @@ inline value array(std::initializer_list<value> values)
 template <typename TIterator>
 value array(TIterator first_value, TIterator last_value)
 {
+    detail::append_after_first_call append_comma{", "};
     std::string formatted;
     for (TIterator it = first_value; it != last_value; ++it) {
         std::ostringstream stream;
-        stream << (!formatted.empty() ? ", " : "");
+        append_comma(stream);
         detail::value(stream, *it);
         formatted += stream.str();
     }
@@ -203,10 +216,11 @@ inline property::property(const char* name, const value& value)
 
 inline property::property(const char* name, std::initializer_list<value> values)
 {
+    detail::append_after_first_call append_comma{", "};
     std::string formatted_values;
     for (const auto& value : values) {
         std::ostringstream stream;
-        stream << (!formatted_values.empty() ? ", " : "") << value;
+        append_comma(stream) << value;
         formatted_values += stream.str();
     }
 
@@ -338,6 +352,19 @@ inline void value(std::ostream& stream, const char* value)
 inline void value(std::ostream& stream, bool value)
 {
     stream << std::boolalpha << value;
+}
+
+inline append_after_first_call::append_after_first_call(std::string string)
+    : m_string{std::move(string)}
+{}
+
+inline std::ostream& append_after_first_call::operator()(std::ostream& stream)
+{
+    if (m_after_first)
+        stream << m_string;
+    else
+        m_after_first = true;
+    return stream;
 }
 
 } // namespace detail
