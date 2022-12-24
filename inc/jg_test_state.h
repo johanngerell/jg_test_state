@@ -158,69 +158,57 @@ value::value(std::initializer_list<T> values)
     static_assert(!std::is_base_of<property, T>::value, "A 'value' cannot be constructed from 'initializer_list<property>'");
 
     detail::append_after_first_call append_comma{", "};
-    for (const auto& value : values) {
-        std::ostringstream stream;
-        append_comma(stream);
-        detail::value(stream, value);
-        m_formatted += stream.str();
+    std::ostringstream value_stream;
+    for (const auto &value : values) {
+        append_comma(value_stream);
+        detail::value(value_stream, value);
     }
 
     std::ostringstream stream;
-    detail::surround(stream, m_formatted, "[", "]");
+    detail::surround(stream, value_stream.str(), "[", "]");
     m_formatted = stream.str();
 }
 
 inline value object(std::initializer_list<property> properties)
 {
     detail::append_after_first_call append_comma{", "};
-    std::string formatted_;
-    for (const auto& property : properties) {
-        std::ostringstream stream;
-        append_comma(stream) << property;
-        formatted_ += stream.str();
-    }
+    std::ostringstream property_stream;
+    for (const auto& property : properties)
+        append_comma(property_stream) << property;
 
     std::ostringstream stream;
-    detail::surround(stream, formatted_, "{", "}");
-    formatted_ = stream.str();
+    detail::surround(stream, property_stream.str(), "{", "}");
 
-    return value(formatted(formatted_));
+    return value(formatted(stream.str()));
 }
 
 inline value array(std::initializer_list<value> values)
 {
     detail::append_after_first_call append_comma{", "};
-    std::string formatted_;
-    for (const auto& value : values) {
-        std::ostringstream stream;
-        append_comma(stream) << value;
-        formatted_ += stream.str();
-    }
+    std::ostringstream value_stream;
+    for (const auto& value : values)
+        append_comma(value_stream) << value;
 
     std::ostringstream stream;
-    detail::surround(stream, formatted_, "[", "]");
-    formatted_ = stream.str();
+    detail::surround(stream, value_stream.str(), "[", "]");
 
-    return value(formatted(formatted_));
+    return value(formatted(stream.str()));
 }
 
 template <typename TIterator>
 value array(TIterator first_value, TIterator last_value)
 {
     detail::append_after_first_call append_comma{", "};
-    std::string formatted_;
+    std::ostringstream value_stream;
     for (TIterator it = first_value; it != last_value; ++it) {
-        std::ostringstream stream;
-        append_comma(stream);
-        detail::value(stream, *it);
-        formatted_ += stream.str();
+        append_comma(value_stream);
+        detail::value(value_stream, *it);
     }
 
     std::ostringstream stream;
-    detail::surround(stream, formatted_, "[", "]");
-    formatted_ = stream.str();
+    detail::surround(stream, value_stream.str(), "[", "]");
 
-    return value(formatted(formatted_));
+    return value(formatted(stream.str()));
 }
 
 template <typename TContainer>
@@ -240,17 +228,14 @@ inline property::property(const char* name, const value& value)
 inline property::property(const char* name, std::initializer_list<value> values)
 {
     detail::append_after_first_call append_comma{", "};
-    std::string formatted_values;
-    for (const auto& value : values) {
-        std::ostringstream stream;
-        append_comma(stream) << value;
-        formatted_values += stream.str();
-    }
+    std::ostringstream property_stream;
+    for (const auto& value : values)
+        append_comma(property_stream) << value;
 
     std::ostringstream stream;
     detail::quote(stream, name);
     stream << ": ";
-    detail::surround(stream, formatted_values, "[", "]");
+    detail::surround(stream, property_stream.str(), "[", "]");
     m_formatted = stream.str();
 }
 
@@ -306,8 +291,9 @@ inline output::output(prefix prefix, value value)
 inline output& output::operator+=(property property)
 {
     std::ostringstream stream;
-    stream << (!m_formatted.empty() ? "\n" : "") << m_prefix;
-    stream << property;
+    if (!m_formatted.empty())
+        stream << "\n";
+    stream << m_prefix << property;
     m_formatted += stream.str();
     return *this;
 }
@@ -315,8 +301,9 @@ inline output& output::operator+=(property property)
 inline output& output::operator+=(value value)
 {
     std::ostringstream stream;
-    stream << (!m_formatted.empty() ? "\n" : "") << m_prefix;
-    stream << value;
+    if (!m_formatted.empty())
+        stream << "\n";
+    stream << m_prefix << value;
     m_formatted += stream.str();
     return *this;
 }
