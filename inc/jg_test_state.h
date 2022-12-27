@@ -110,16 +110,11 @@ std::string surround(const std::string& text, const char *left, const char *righ
 void quote(std::ostream& stream, const std::string& text);
 
 template <typename T>
-using is_voidptr = std::is_same<void*, T>;
-
-template <typename T>
-using is_const_voidptr = std::is_same<const void*, T>;
-
-template <typename T, typename std::enable_if<!is_voidptr<T>::value &&
-                                              !is_const_voidptr<T>::value, T>::type* = nullptr>
 void value(std::ostream& stream, const T& value);
 void value(std::ostream& stream, std::string value);
+void value(std::ostream& stream, void* value);
 void value(std::ostream& stream, const void* value);
+void value(std::ostream& stream, char* value);
 void value(std::ostream& stream, const char* value);
 void value(std::ostream& stream, bool value);
 
@@ -317,7 +312,7 @@ inline void quote(std::ostream& stream, const std::string& text)
     stream << '\"' << text << '\"';
 }
 
-template <typename T, typename std::enable_if<!is_voidptr<T>::value && !std::is_same<const void*, T>::value, T>::type*>
+template <typename T>
 void value(std::ostream& stream, const T& value)
 {
     stream << value;
@@ -328,6 +323,11 @@ inline void value(std::ostream& stream, std::string value)
     quote(stream, value);
 }
 
+inline void value(std::ostream& stream, void* value_)
+{
+    value(stream, const_cast<const void*>(value_));
+}
+
 inline void value(std::ostream& stream, const void* value)
 {
     stream << "0x"
@@ -335,6 +335,11 @@ inline void value(std::ostream& stream, const void* value)
            << std::setw(sizeof(void*) * 2)
            << std::setfill('0')
            << reinterpret_cast<std::uintptr_t>(value);
+}
+
+inline void value(std::ostream& stream, char* value)
+{
+    quote(stream, value);
 }
 
 inline void value(std::ostream& stream, const char* value)

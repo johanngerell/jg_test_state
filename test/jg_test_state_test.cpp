@@ -777,6 +777,9 @@ static void test_property()
 
         property p9 = {"p9", {4711, "4712", array({false, 0, "", (void*)0}), true}};
         assert(to_string(p9) == R"("p9": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
+
+        property p10 = {"p10", {4711, "4712", array({false, 0, "", (const void*)0}), true}};
+        assert(to_string(p10) == R"("p10": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
     }
 }
 
