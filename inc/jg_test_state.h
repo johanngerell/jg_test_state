@@ -14,7 +14,7 @@ class formatted;
 class value;
 class property;
 
-class output
+class output final
 {
 public:
     output() = default;
@@ -39,12 +39,12 @@ private:
     std::string m_formatted;
 };
 
-class value
+class value final
 {
 public:
     value(formatted formatted);
     template <typename T> value(const T& value);
-    template <typename T> value(std::initializer_list<T> values);
+    template <typename T> value(std::initializer_list<T> array_values);
 
     friend std::ostream& operator<<(std::ostream& stream, const value& value)
     {
@@ -57,15 +57,16 @@ private:
     std::string m_formatted;
 };
 
-value object(std::initializer_list<property> properties);
 value array(std::initializer_list<value> values);
 template <typename TIterator> value array(TIterator first_value, TIterator last_value);
-template <typename TContainer> value array(const TContainer& values);
+template <typename TRange> value array(const TRange& values);
 
-class property
+value object(std::initializer_list<property> properties);
+
+class property final
 {
 public:
-    property(const char* name, const value& value);
+    property(const char* name, value value);
     property(const char* name, std::initializer_list<value> values);
 
     friend std::ostream& operator<<(std::ostream& stream, const property& property)
@@ -77,7 +78,7 @@ private:
     std::string m_formatted;
 };
 
-class prefix
+class prefix final
 {
 public:
     prefix() = default;
@@ -89,7 +90,7 @@ private:
     std::string m_value;
 };
 
-class formatted
+class formatted final
 {
 public:
     formatted() = default;
@@ -105,6 +106,9 @@ namespace detail {
 void surround(std::ostream& stream, const char* text, const char* left, const char* right);
 void surround(std::ostream& stream, const std::string& text, const char* left, const char* right);
 
+std::string surround(const char* text, const char *left, const char *right);
+std::string surround(const std::string& text, const char *left, const char *right);
+
 void quote(std::ostream& stream, const char* text);
 void quote(std::ostream& stream, const std::string& text);
 
@@ -117,15 +121,16 @@ using is_voidptr = std::is_same<void*, T>;
 template <typename T>
 using is_const_voidptr = std::is_same<const void*, T>;
 
-template <typename T, typename std::enable_if<!is_string<T>::value && !is_voidptr<T>::value && !is_const_voidptr<T>::value, T>::type* = nullptr>
+template <typename T, typename std::enable_if<!is_string<T>::value &&
+                                              !is_voidptr<T>::value &&
+                                              !is_const_voidptr<T>::value, T>::type* = nullptr>
 void value(std::ostream& stream, const T& value);
-
 void value(std::ostream& stream, const std::string& value);
 void value(std::ostream& stream, const void* value);
 void value(std::ostream& stream, const char* value);
 void value(std::ostream& stream, bool value);
 
-class append_after_first_call
+class append_after_first_call final
 {
 public:
     append_after_first_call(std::string string);
@@ -143,30 +148,31 @@ inline value::value(formatted formatted)
 {}
 
 template <typename T>
-value::value(const T& value)
+std::string value_to_string(const T& value)
 {
-    static_assert(!std::is_base_of<property, T>::value, "A 'value' cannot be constructed from a 'property'");
-
     std::ostringstream stream;
     detail::value(stream, value);
-    m_formatted = stream.str();
+    return stream.str();
 }
 
 template <typename T>
-value::value(std::initializer_list<T> values)
+value::value(const T& value)
 {
-    static_assert(!std::is_base_of<property, T>::value, "A 'value' cannot be constructed from 'initializer_list<property>'");
+    static_assert(!std::is_same<property, T>::value, "A 'value' cannot be constructed from a 'property'");
+    m_formatted = value_to_string(value);
+}
 
+template <typename T>
+value::value(std::initializer_list<T> array_values)
+{
+    static_assert(!std::is_same<property, T>::value, "A 'value' cannot be constructed from a 'property'");
     detail::append_after_first_call append_comma{", "};
     std::ostringstream value_stream;
-    for (const auto &value : values) {
+    for (const auto &value : array_values) {
         append_comma(value_stream);
         detail::value(value_stream, value);
     }
-
-    std::ostringstream stream;
-    detail::surround(stream, value_stream.str(), "[", "]");
-    m_formatted = stream.str();
+    m_formatted = detail::surround(value_stream.str(), "[", "]");
 }
 
 inline value object(std::initializer_list<property> properties)
@@ -175,11 +181,7 @@ inline value object(std::initializer_list<property> properties)
     std::ostringstream property_stream;
     for (const auto& property : properties)
         append_comma(property_stream) << property;
-
-    std::ostringstream stream;
-    detail::surround(stream, property_stream.str(), "{", "}");
-
-    return value(formatted(stream.str()));
+    return value(formatted(detail::surround(property_stream.str(), "{", "}")));
 }
 
 inline value array(std::initializer_list<value> values)
@@ -188,11 +190,7 @@ inline value array(std::initializer_list<value> values)
     std::ostringstream value_stream;
     for (const auto& value : values)
         append_comma(value_stream) << value;
-
-    std::ostringstream stream;
-    detail::surround(stream, value_stream.str(), "[", "]");
-
-    return value(formatted(stream.str()));
+    return value(formatted(detail::surround(value_stream.str(), "[", "]")));
 }
 
 template <typename TIterator>
@@ -204,20 +202,16 @@ value array(TIterator first_value, TIterator last_value)
         append_comma(value_stream);
         detail::value(value_stream, *it);
     }
-
-    std::ostringstream stream;
-    detail::surround(stream, value_stream.str(), "[", "]");
-
-    return value(formatted(stream.str()));
+    return value(formatted(detail::surround(value_stream.str(), "[", "]")));
 }
 
-template <typename TContainer>
-value array(const TContainer& values)
+template <typename TRange>
+value array(const TRange& values)
 {
-    return array(values.begin(), values.end());
+    return array(std::begin(values), std::end(values));
 }
 
-inline property::property(const char* name, const value& value)
+inline property::property(const char* name, value value)
 {
     std::ostringstream stream;
     detail::quote(stream, name);
@@ -323,6 +317,18 @@ inline void surround(std::ostream& stream, const std::string& text, const char* 
     surround(stream, text.c_str(), left, right);
 }
 
+inline std::string surround(const char* text, const char *left, const char *right)
+{
+    std::ostringstream stream;
+    detail::surround(stream, text, left, right);
+    return stream.str();
+}
+
+inline std::string surround(const std::string& text, const char *left, const char *right)
+{
+    return surround(text.c_str(), left, right);
+}
+
 inline void quote(std::ostream& stream, const char* text)
 {
     stream << '\"' << text << '\"';
@@ -339,7 +345,7 @@ void value(std::ostream& stream, const T& value)
     stream << value;
 }
 
-void value(std::ostream& stream, const std::string& value)
+inline void value(std::ostream& stream, const std::string& value)
 {
     quote(stream, value);
 }
