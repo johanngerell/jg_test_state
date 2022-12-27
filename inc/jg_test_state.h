@@ -103,17 +103,14 @@ private:
 
 namespace detail {
 
-void surround(std::ostream& stream, const char* text, const char* left, const char* right);
 void surround(std::ostream& stream, const std::string& text, const char* left, const char* right);
 
-std::string surround(const char* text, const char *left, const char *right);
 std::string surround(const std::string& text, const char *left, const char *right);
 
-void quote(std::ostream& stream, const char* text);
 void quote(std::ostream& stream, const std::string& text);
 
 template <typename T>
-using is_string = std::is_base_of<std::string, T>;
+using is_string = std::is_same<std::string, T>;
 
 template <typename T>
 using is_voidptr = std::is_same<void*, T>;
@@ -125,7 +122,7 @@ template <typename T, typename std::enable_if<!is_string<T>::value &&
                                               !is_voidptr<T>::value &&
                                               !is_const_voidptr<T>::value, T>::type* = nullptr>
 void value(std::ostream& stream, const T& value);
-void value(std::ostream& stream, const std::string& value);
+void value(std::ostream& stream, std::string value);
 void value(std::ostream& stream, const void* value);
 void value(std::ostream& stream, const char* value);
 void value(std::ostream& stream, bool value);
@@ -304,39 +301,24 @@ inline output& output::operator+=(value value)
 
 namespace detail {
 
-inline void surround(std::ostream& stream, const char* text, const char* left, const char* right)
+inline void surround(std::ostream& stream, const std::string& text, const char* left, const char* right)
 {
     stream << left;
-    if (text[0] != '\0')
+    if (!text.empty())
         stream << ' ' << text << ' ';
     stream << right;
 }
 
-inline void surround(std::ostream& stream, const std::string& text, const char* left, const char* right)
-{
-    surround(stream, text.c_str(), left, right);
-}
-
-inline std::string surround(const char* text, const char *left, const char *right)
+inline std::string surround(const std::string& text, const char *left, const char *right)
 {
     std::ostringstream stream;
     detail::surround(stream, text, left, right);
     return stream.str();
 }
 
-inline std::string surround(const std::string& text, const char *left, const char *right)
-{
-    return surround(text.c_str(), left, right);
-}
-
-inline void quote(std::ostream& stream, const char* text)
-{
-    stream << '\"' << text << '\"';
-}
-
 inline void quote(std::ostream& stream, const std::string& text)
 {
-    return quote(stream, text.c_str());
+    stream << '\"' << text << '\"';
 }
 
 template <typename T, typename std::enable_if<!is_string<T>::value && !is_voidptr<T>::value && !std::is_same<const void*, T>::value, T>::type*>
@@ -345,7 +327,7 @@ void value(std::ostream& stream, const T& value)
     stream << value;
 }
 
-inline void value(std::ostream& stream, const std::string& value)
+inline void value(std::ostream& stream, std::string value)
 {
     quote(stream, value);
 }

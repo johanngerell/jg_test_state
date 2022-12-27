@@ -588,19 +588,6 @@ static void test_value()
     }
 
     {
-        struct derived_string : std::string { using std::string::string; };
-
-        value v1(derived_string{"foobar"});
-        assert(to_string(v1) == R"("foobar")");
-
-        value v2({derived_string{"foobar"}});
-        assert(to_string(v2) == R"([ "foobar" ])");
-
-        value v3{derived_string{"foobar"}};
-        assert(to_string(v3) == R"([ "foobar" ])");
-    }
-
-    {
         value v1(4711);
         assert(to_string(v1) == "4711");
 
@@ -744,22 +731,6 @@ static void test_property()
         assert(to_string(p3) == R"("p3": "foobar")");
 
         property p4{"p4", {std::string{"foobar"}}};
-        assert(to_string(p4) == R"("p4": [ "foobar" ])");
-    }
-
-    {
-        struct derived_string : std::string { using std::string::string; };
-
-        property p1("p1", derived_string{"foobar"});
-        assert(to_string(p1) == R"("p1": "foobar")");
-
-        property p2("p2", {derived_string{"foobar"}});
-        assert(to_string(p2) == R"("p2": [ "foobar" ])");
-
-        property p3{"p3", derived_string{"foobar"}};
-        assert(to_string(p3) == R"("p3": "foobar")");
-
-        property p4{"p4", {derived_string{"foobar"}}};
         assert(to_string(p4) == R"("p4": [ "foobar" ])");
     }
 
