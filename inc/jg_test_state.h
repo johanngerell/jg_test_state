@@ -66,8 +66,8 @@ value object(std::initializer_list<property> properties);
 class property final
 {
 public:
-    property(const char* name, value value);
-    property(const char* name, std::initializer_list<value> values);
+    property(std::string name, value value);
+    property(std::string name, std::initializer_list<value> values);
 
     friend std::ostream& operator<<(std::ostream& stream, const property& property)
     {
@@ -103,9 +103,9 @@ private:
 
 namespace detail {
 
-void surround(std::ostream& stream, const std::string& text, const char* left, const char* right);
+void surround(std::ostream& stream, const std::string& text, std::string left, std::string right);
 
-std::string surround(const std::string& text, const char *left, const char *right);
+std::string surround(const std::string& text, std::string left, std::string right);
 
 void quote(std::ostream& stream, const std::string& text);
 
@@ -199,7 +199,7 @@ value array(const TRange& values)
     return array(std::begin(values), std::end(values));
 }
 
-inline property::property(const char* name, value value)
+inline property::property(std::string name, value value)
 {
     std::ostringstream stream;
     detail::quote(stream, name);
@@ -207,7 +207,7 @@ inline property::property(const char* name, value value)
     m_formatted = stream.str();
 }
 
-inline property::property(const char* name, std::initializer_list<value> values)
+inline property::property(std::string name, std::initializer_list<value> values)
 {
     detail::append_after_first_call append_comma{", "};
     std::ostringstream property_stream;
@@ -292,7 +292,7 @@ inline output& output::operator+=(value value)
 
 namespace detail {
 
-inline void surround(std::ostream& stream, const std::string& text, const char* left, const char* right)
+inline void surround(std::ostream& stream, const std::string& text, std::string left, std::string right)
 {
     stream << left;
     if (!text.empty())
@@ -300,7 +300,7 @@ inline void surround(std::ostream& stream, const std::string& text, const char* 
     stream << right;
 }
 
-inline std::string surround(const std::string& text, const char *left, const char *right)
+inline std::string surround(const std::string& text, std::string left, std::string right)
 {
     std::ostringstream stream;
     detail::surround(stream, text, left, right);
