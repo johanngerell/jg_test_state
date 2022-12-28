@@ -103,50 +103,8 @@ private:
 
 namespace detail {
 
-class surrounded
-{
-public:
-    surrounded(const std::string& text, const std::string& left, const std::string& right)
-        : m_text{&text}
-        , m_left{&left}
-        , m_right{&right}
-    {}
-
-    friend std::ostream& operator<<(std::ostream& stream, const surrounded& s)
-    {
-        stream << *s.m_left;
-        if (!s.m_text->empty())
-            stream << ' ' << *s.m_text << ' ';
-        stream << *s.m_right;
-        return stream;
-    }
-
-private:
-    const std::string* m_text;
-    const std::string* m_left;
-    const std::string* m_right;
-};
-
-inline surrounded surround(const std::string& text, const std::string& left, const std::string& right);
-
-class quoted
-{
-public:
-    quoted(const std::string& text)
-        : m_text{&text}
-    {}
-
-    friend std::ostream& operator<<(std::ostream& stream, const quoted& q)
-    {
-        stream << '\"' << *q.m_text << '\"';
-        return stream;
-    }
-
-private:
-    const std::string* m_text;
-};
-
-inline quoted quote(const std::string& text);
+std::string surround(const std::string& text, const std::string& left, const std::string& right);
+std::string quote(const std::string& text);
 
 template <typename T>
 void value(std::ostream& stream, const T& value);
@@ -175,18 +133,12 @@ inline value::value(formatted formatted)
 {}
 
 template <typename T>
-std::string value_to_string(const T& value)
-{
-    std::ostringstream stream;
-    detail::value(stream, value);
-    return stream.str();
-}
-
-template <typename T>
 value::value(const T& value)
 {
     static_assert(!std::is_same<property, T>::value, "A 'value' cannot be constructed from a 'property'");
-    m_formatted = value_to_string(value);
+    std::ostringstream stream;
+    detail::value(stream, value);
+    m_formatted = stream.str();
 }
 
 template <typename T>
@@ -199,9 +151,7 @@ value::value(std::initializer_list<T> array_values)
         append_comma(value_stream);
         detail::value(value_stream, value);
     }
-    std::ostringstream stream;
-    stream << detail::surround(value_stream.str(), "[", "]");
-    m_formatted = stream.str();
+    m_formatted = detail::surround(value_stream.str(), "[", "]");
 }
 
 inline value object(std::initializer_list<property> properties)
@@ -210,9 +160,7 @@ inline value object(std::initializer_list<property> properties)
     std::ostringstream property_stream;
     for (const auto& property : properties)
         append_comma(property_stream) << property;
-    std::ostringstream stream;
-    stream << detail::surround(property_stream.str(), "{", "}");
-    return value(formatted(stream.str()));
+    return value(formatted(detail::surround(property_stream.str(), "{", "}")));
 }
 
 inline value array(std::initializer_list<value> values)
@@ -221,9 +169,7 @@ inline value array(std::initializer_list<value> values)
     std::ostringstream value_stream;
     for (const auto& value : values)
         append_comma(value_stream) << value;
-    std::ostringstream stream;
-    stream << detail::surround(value_stream.str(), "[", "]");
-    return value(formatted(stream.str()));
+    return value(formatted(detail::surround(value_stream.str(), "[", "]")));
 }
 
 template <typename TIterator>
@@ -233,9 +179,7 @@ value array(TIterator first_value, TIterator last_value)
     std::ostringstream value_stream;
     for (TIterator it = first_value; it != last_value; ++it)
         append_comma(value_stream) << value(*it);
-    std::ostringstream stream;
-    stream << detail::surround(value_stream.str(), "[", "]");
-    return value(formatted(stream.str()));
+    return value(formatted(detail::surround(value_stream.str(), "[", "]")));
 }
 
 template <typename TRange>
@@ -334,14 +278,23 @@ inline output& output::operator+=(value value)
 
 namespace detail {
 
-inline surrounded surround(const std::string& text, const std::string& left, const std::string& right)
+inline std::string surround(const std::string& text, const std::string& left, const std::string& right)
 {
-    return {text, left, right};
+    std::string text_;
+    text_.reserve(text.length() + (text.empty() ? 0 : 2) + left.length() + right.length());
+    text_.append(left);
+    if (!text.empty())
+        text_.append(1, ' ').append(text).append(1, ' ');
+    text_.append(right);
+    return text_;
 }
 
-inline quoted quote(const std::string& text)
+inline std::string quote(const std::string& text)
 {
-    return {text};
+    std::string text_;
+    text_.reserve(text.length() + 2);
+    text_.append(1, '\"').append(text).append(1, '\"');
+    return text_;
 }
 
 template <typename T>
