@@ -12,31 +12,25 @@ namespace test_state {
 namespace detail {
 
 template <typename T, typename Tag>
-class semantic_type final
+struct strong_type final
 {
-public:
-    semantic_type() = default;
-    explicit semantic_type(T value) : m_underlying{std::move(value)} {}
+    strong_type() = default;
+    explicit strong_type(T value) : underlying{std::move(value)} {}
 
-    T&       get()        & { return m_underlying; }
-    const T& get() const  & { return m_underlying; }
-    T        get() const && { return std::move(m_underlying); }
-
-    friend std::ostream& operator<<(std::ostream& stream, const semantic_type& s)
+    friend std::ostream& operator<<(std::ostream& stream, const strong_type& value)
     {
-        return stream << s.m_underlying;
+        return stream << value.underlying;
     }
 
-private:
-    T m_underlying;
+    T underlying{};
 };
 
 } // namespace detail
 
-using prefix = detail::semantic_type<std::string, struct prefix_tag>;
+using prefix = detail::strong_type<std::string, struct prefix_tag>;
 prefix google_test_prefix();
 
-using formatted = detail::semantic_type<std::string, struct formatted_tag>;
+using formatted = detail::strong_type<std::string, struct formatted_tag>;
 
 class value;
 class property;
@@ -138,7 +132,7 @@ private:
 } // namespace detail
 
 inline value::value(formatted formatted)
-    : m_formatted{std::move(formatted.get())}
+    : m_formatted{std::move(formatted.underlying)}
 {}
 
 template <typename T>
@@ -218,7 +212,7 @@ inline prefix google_test_prefix()
 }
 
 inline output::output(prefix prefix)
-    : m_prefix{std::move(prefix.get())}
+    : m_prefix{std::move(prefix.underlying)}
 {}
 
 inline output::output(const value& value)
@@ -232,13 +226,13 @@ inline output::output(const property& property)
 }
 
 inline output::output(prefix prefix, const property& property)
-    : m_prefix{std::move(prefix.get())}
+    : m_prefix{std::move(prefix.underlying)}
 {
     *this += property;
 }
 
 inline output::output(prefix prefix, const value& value)
-    : m_prefix{std::move(prefix.get())}
+    : m_prefix{std::move(prefix.underlying)}
 {
     *this += value;
 }
