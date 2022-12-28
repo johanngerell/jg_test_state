@@ -52,6 +52,9 @@ public:
     }
 
 private:
+    friend output;
+    friend property;
+
     value() = default;
 
     std::string m_formatted;
@@ -75,6 +78,8 @@ public:
     }
 
 private:
+    friend output;
+
     std::string m_formatted;
 };
 
@@ -120,12 +125,10 @@ void output_value(std::ostream& stream, bool value);
 class output_after_first_call final
 {
 public:
-    output_after_first_call(std::string string);
-    std::ostream& operator()(std::ostream& stream);
+    std::ostream& operator()(std::ostream& stream, const std::string& string);
 
 private:
     bool m_after_first{false};
-    std::string m_string;
 };
 
 } // namespace detail
@@ -147,10 +150,10 @@ template <typename T>
 value::value(std::initializer_list<T> array_values)
 {
     static_assert(!std::is_same<property, T>::value, "A 'value' cannot be constructed from a 'property'");
-    detail::output_after_first_call output_comma{", "};
+    detail::output_after_first_call output_after_first_call;
     std::ostringstream value_stream;
     for (const auto &value : array_values) {
-        output_comma(value_stream);
+        output_after_first_call(value_stream, ", ");
         detail::output_value(value_stream, value);
     }
     m_formatted = detail::surround(value_stream.str(), "[", "]");
@@ -158,29 +161,29 @@ value::value(std::initializer_list<T> array_values)
 
 inline value object(std::initializer_list<property> properties)
 {
-    detail::output_after_first_call output_comma{", "};
+    detail::output_after_first_call output_after_first_call;
     std::ostringstream property_stream;
     for (const auto& property : properties)
-        output_comma(property_stream) << property;
+        output_after_first_call(property_stream, ", ") << property;
     return value(formatted(detail::surround(property_stream.str(), "{", "}")));
 }
 
 inline value array(std::initializer_list<value> values)
 {
-    detail::output_after_first_call output_comma{", "};
+    detail::output_after_first_call output_after_first_call;
     std::ostringstream value_stream;
     for (const auto& value : values)
-        output_comma(value_stream) << value;
+        output_after_first_call(value_stream, ", ") << value;
     return value(formatted(detail::surround(value_stream.str(), "[", "]")));
 }
 
 template <typename TIterator>
 value array(TIterator first_value, TIterator last_value)
 {
-    detail::output_after_first_call output_comma{", "};
+    detail::output_after_first_call output_after_first_call;
     std::ostringstream value_stream;
     for (TIterator it = first_value; it != last_value; ++it)
-        output_comma(value_stream) << value(*it);
+        output_after_first_call(value_stream, ", ") << value(*it);
     return value(formatted(detail::surround(value_stream.str(), "[", "]")));
 }
 
@@ -192,21 +195,17 @@ value array(const TRange& values)
 
 inline property::property(std::string name, value value)
 {
-    std::ostringstream stream;
-    stream << detail::quote(name) << ": " << value;
-    m_formatted = stream.str();
+    m_formatted.reserve(name.length() + 2 + 2 + value.m_formatted.length());
+    m_formatted.append(detail::quote(name)).append(": ").append(value.m_formatted);
 }
 
 inline property::property(std::string name, std::initializer_list<value> values)
 {
-    detail::output_after_first_call output_comma{", "};
-    std::ostringstream property_stream;
+    detail::output_after_first_call output_after_first_call;
+    std::ostringstream value_stream;
     for (const auto& value : values)
-        output_comma(property_stream) << value;
-
-    std::ostringstream stream;
-    stream << detail::quote(name) << ": " << detail::surround(property_stream.str(), "[", "]");
-    m_formatted = stream.str();
+        output_after_first_call(value_stream, ", ") << value;
+    *this = property(name, value(formatted(detail::surround(value_stream.str(), "[", "]"))));
 }
 
 inline prefix::prefix(std::string value)
@@ -260,21 +259,19 @@ inline output::output(prefix prefix, value value)
 
 inline output& output::operator+=(property property)
 {
-    std::ostringstream stream;
+    m_formatted.reserve(m_formatted.length() + (m_formatted.empty() ? 0 : 1) + m_prefix.length() + property.m_formatted.length());
     if (!m_formatted.empty())
-        stream << "\n";
-    stream << m_prefix << property;
-    m_formatted += stream.str();
+        m_formatted.append(1, '\n');
+    m_formatted.append(m_prefix).append(property.m_formatted);
     return *this;
 }
 
 inline output& output::operator+=(value value)
 {
-    std::ostringstream stream;
+    m_formatted.reserve(m_formatted.length() + (m_formatted.empty() ? 0 : 1) + m_prefix.length() + value.m_formatted.length());
     if (!m_formatted.empty())
-        stream << "\n";
-    stream << m_prefix << value;
-    m_formatted += stream.str();
+        m_formatted.append(1, '\n');
+    m_formatted.append(m_prefix).append(value.m_formatted);
     return *this;
 }
 
@@ -339,14 +336,10 @@ inline void output_value(std::ostream& stream, bool value)
     stream << std::boolalpha << value;
 }
 
-inline output_after_first_call::output_after_first_call(std::string string)
-    : m_string{std::move(string)}
-{}
-
-inline std::ostream& output_after_first_call::operator()(std::ostream& stream)
+inline std::ostream& output_after_first_call::operator()(std::ostream& stream, const std::string& string)
 {
     if (m_after_first)
-        stream << m_string;
+        stream << string;
     else
         m_after_first = true;
     return stream;
