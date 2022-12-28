@@ -9,8 +9,34 @@
 namespace jg {
 namespace test_state {
 
-class prefix;
-class formatted;
+namespace detail {
+
+template <typename T, typename Tag>
+class semantic_type final
+{
+public:
+    semantic_type() = default;
+    explicit semantic_type(T value) : m_value{std::move(value)} {}
+    T&       get() & { return m_value; }
+    const T& get() const & { return m_value; }
+    T        get() const && { return std::move(m_value); }
+
+    friend std::ostream& operator<<(std::ostream& stream, const semantic_type& s)
+    {
+        return stream << s.m_value;
+    }
+
+private:
+    T m_value;
+};
+
+} // namespace detail
+
+using prefix = detail::semantic_type<std::string, struct prefix_tag>;
+prefix google_test_prefix();
+
+using formatted = detail::semantic_type<std::string, struct formatted_tag>;
+
 class value;
 class property;
 
@@ -35,8 +61,8 @@ public:
     }
 
 private:
-    std::string m_prefix;
-    std::string m_formatted;
+    prefix m_prefix;
+    formatted m_formatted;
 };
 
 class value final
@@ -57,7 +83,7 @@ private:
 
     value() = default;
 
-    std::string m_formatted;
+    formatted m_formatted;
 };
 
 value array(std::initializer_list<value> values);
@@ -80,31 +106,7 @@ public:
 private:
     friend output;
 
-    std::string m_formatted;
-};
-
-class prefix final
-{
-public:
-    prefix() = default;
-    explicit prefix(std::string value);
-    std::string get() const;
-
-private:
-    std::string m_value;
-};
-
-prefix google_test_prefix();
-
-class formatted final
-{
-public:
-    formatted() = default;
-    explicit formatted(std::string value);
-    std::string get() const;
-
-private:
-    std::string m_value;
+    formatted m_formatted;
 };
 
 namespace detail {
@@ -135,7 +137,7 @@ private:
 } // namespace detail
 
 inline value::value(formatted formatted)
-    : m_formatted{formatted.get()}
+    : m_formatted{std::move(formatted)}
 {}
 
 template <typename T>
@@ -144,7 +146,7 @@ value::value(const T& value)
     static_assert(!std::is_same<property, T>::value, "A 'value' cannot be constructed from a 'property'");
     std::ostringstream stream;
     detail::output_value(stream, value);
-    m_formatted = stream.str();
+    m_formatted = {stream.str()};
 }
 
 template <typename T>
@@ -152,40 +154,40 @@ value::value(std::initializer_list<T> array_values)
 {
     static_assert(!std::is_same<property, T>::value, "A 'value' cannot be constructed from a 'property'");
     detail::output_after_first_call output_after_first_call;
-    std::ostringstream value_stream;
-    for (const auto &value : array_values) {
-        output_after_first_call(value_stream, ", ");
-        detail::output_value(value_stream, value);
+    std::ostringstream stream;
+    for (const auto& value : array_values) {
+        output_after_first_call(stream, ", ");
+        detail::output_value(stream, value);
     }
-    m_formatted = detail::surround(value_stream.str(), "[", "]");
+    m_formatted = {detail::surround(stream.str(), "[", "]")};
 }
 
 inline value object(std::initializer_list<property> properties)
 {
     detail::output_after_first_call output_after_first_call;
-    std::ostringstream property_stream;
+    std::ostringstream stream;
     for (const auto& property : properties)
-        output_after_first_call(property_stream, ", ") << property;
-    return value(formatted(detail::surround(property_stream.str(), "{", "}")));
+        output_after_first_call(stream, ", ") << property;
+    return value(formatted(detail::surround(stream.str(), "{", "}")));
 }
 
 inline value array(std::initializer_list<value> values)
 {
     detail::output_after_first_call output_after_first_call;
-    std::ostringstream value_stream;
+    std::ostringstream stream;
     for (const auto& value : values)
-        output_after_first_call(value_stream, ", ") << value;
-    return value(formatted(detail::surround(value_stream.str(), "[", "]")));
+        output_after_first_call(stream, ", ") << value;
+    return value(formatted(detail::surround(stream.str(), "[", "]")));
 }
 
 template <typename TIterator>
 value array(TIterator first_value, TIterator last_value)
 {
     detail::output_after_first_call output_after_first_call;
-    std::ostringstream value_stream;
+    std::ostringstream stream;
     for (TIterator it = first_value; it != last_value; ++it)
-        output_after_first_call(value_stream, ", ") << value(*it);
-    return value(formatted(detail::surround(value_stream.str(), "[", "]")));
+        output_after_first_call(stream, ", ") << value(*it);
+    return value(formatted(detail::surround(stream.str(), "[", "]")));
 }
 
 template <typename TRange>
@@ -196,40 +198,25 @@ value array(const TRange& values)
 
 inline property::property(std::string name, value value)
 {
-    m_formatted.reserve(name.length() + 2 + 2 + value.m_formatted.length());
-    m_formatted.append(detail::quote(name)).append(": ").append(value.m_formatted);
+    std::string& source = value.m_formatted.get();
+    std::string& target = m_formatted.get();
+
+    target.reserve(name.length() + 2 + 2 + source.length());
+    target.append(detail::quote(name)).append(": ").append(source);
 }
 
 inline property::property(std::string name, std::initializer_list<value> values)
 {
     detail::output_after_first_call output_after_first_call;
-    std::ostringstream value_stream;
+    std::ostringstream stream;
     for (const auto& value : values)
-        output_after_first_call(value_stream, ", ") << value;
-    *this = property(name, value(formatted(detail::surround(value_stream.str(), "[", "]"))));
-}
-
-inline prefix::prefix(std::string value)
-    : m_value{std::move(value)}
-{}
-
-inline std::string prefix::get() const
-{
-    return m_value;
+        output_after_first_call(stream, ", ") << value;
+    *this = property(name, value(formatted(detail::surround(stream.str(), "[", "]"))));
 }
 
 inline prefix google_test_prefix()
 {
     return prefix{"[    STATE ] "};
-}
-
-inline formatted::formatted(std::string value)
-    : m_value{std::move(value)}
-{}
-
-inline std::string formatted::get() const
-{
-    return m_value;
 }
 
 inline output::output(prefix prefix)
@@ -247,32 +234,40 @@ inline output::output(property property)
 }
 
 inline output::output(prefix prefix, property property)
-    : m_prefix{prefix.get()}
+    : m_prefix{std::move(prefix)}
 {
     *this += property;
 }
 
 inline output::output(prefix prefix, value value)
-    : m_prefix{prefix.get()}
+    : m_prefix{std::move(prefix)}
 {
     *this += value;
 }
 
 inline output& output::operator+=(property property)
 {
-    m_formatted.reserve(m_formatted.length() + (m_formatted.empty() ? 0 : 1) + m_prefix.length() + property.m_formatted.length());
-    if (!m_formatted.empty())
-        m_formatted.append(1, '\n');
-    m_formatted.append(m_prefix).append(property.m_formatted);
+    std::string& source = property.m_formatted.get();
+    std::string& target = m_formatted.get();
+    std::string& prefix = m_prefix.get();
+
+    target.reserve(target.length() + (target.empty() ? 0 : 1) + prefix.length() + source.length());
+    if (!target.empty())
+        target.append(1, '\n');
+    target.append(prefix).append(source);
     return *this;
 }
 
 inline output& output::operator+=(value value)
 {
-    m_formatted.reserve(m_formatted.length() + (m_formatted.empty() ? 0 : 1) + m_prefix.length() + value.m_formatted.length());
-    if (!m_formatted.empty())
-        m_formatted.append(1, '\n');
-    m_formatted.append(m_prefix).append(value.m_formatted);
+    std::string& source = value.m_formatted.get();
+    std::string& target = m_formatted.get();
+    std::string& prefix = m_prefix.get();
+    
+    target.reserve(target.length() + (target.empty() ? 0 : 1) + prefix.length() + source.length());
+    if (!target.empty())
+        target.append(1, '\n');
+    target.append(prefix).append(source);
     return *this;
 }
 
