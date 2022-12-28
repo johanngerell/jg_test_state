@@ -88,7 +88,7 @@ class prefix final
 public:
     prefix() = default;
     explicit prefix(std::string value);
-    operator std::string() const;
+    std::string get() const;
 
 private:
     std::string m_value;
@@ -101,7 +101,7 @@ class formatted final
 public:
     formatted() = default;
     explicit formatted(std::string value);
-    operator std::string() const;
+    std::string get() const;
 
 private:
     std::string m_value;
@@ -135,7 +135,7 @@ private:
 } // namespace detail
 
 inline value::value(formatted formatted)
-    : m_formatted{formatted}
+    : m_formatted{formatted.get()}
 {}
 
 template <typename T>
@@ -213,7 +213,7 @@ inline prefix::prefix(std::string value)
     : m_value{std::move(value)}
 {}
 
-inline prefix::operator std::string() const
+inline std::string prefix::get() const
 {
     return m_value;
 }
@@ -227,13 +227,13 @@ inline formatted::formatted(std::string value)
     : m_value{std::move(value)}
 {}
 
-inline formatted::operator std::string() const
+inline std::string formatted::get() const
 {
     return m_value;
 }
 
 inline output::output(prefix prefix)
-    : m_prefix{prefix}
+    : m_prefix{prefix.get()}
 {}
 
 inline output::output(value value)
@@ -247,13 +247,13 @@ inline output::output(property property)
 }
 
 inline output::output(prefix prefix, property property)
-    : m_prefix{prefix}
+    : m_prefix{prefix.get()}
 {
     *this += property;
 }
 
 inline output::output(prefix prefix, value value)
-    : m_prefix{prefix}
+    : m_prefix{prefix.get()}
 {
     *this += value;
 }
