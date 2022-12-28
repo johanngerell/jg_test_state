@@ -46,14 +46,14 @@ public:
     output() = default;
 
     output(prefix prefix);
-    output(value value);
-    output(property property);
+    output(const value& value);
+    output(const property& property);
 
-    output(prefix prefix, value value);
-    output(prefix prefix, property property);
+    output(prefix prefix, const value& value);
+    output(prefix prefix, const property& property);
 
-    output& operator+=(value value);
-    output& operator+=(property property);
+    output& operator+=(const value& value);
+    output& operator+=(const property& property);
 
     friend std::ostream& operator<<(std::ostream& stream, const output& output)
     {
@@ -95,8 +95,8 @@ value object(std::initializer_list<property> properties);
 class property final
 {
 public:
-    property(std::string name, value value);
-    property(std::string name, std::initializer_list<value> values);
+    property(const std::string& name, const value& value);
+    property(const std::string& name, std::initializer_list<value> values);
 
     friend std::ostream& operator<<(std::ostream& stream, const property& property)
     {
@@ -196,16 +196,16 @@ value array(const TRange& values)
     return array(std::begin(values), std::end(values));
 }
 
-inline property::property(std::string name, value value)
+inline property::property(const std::string& name, const value& value)
 {
-    std::string& source = value.m_formatted.get();
+    const std::string& source = value.m_formatted.get();
     std::string& target = m_formatted.get();
 
     target.reserve(name.length() + 2 + 2 + source.length());
     target.append(detail::quote(name)).append(": ").append(source);
 }
 
-inline property::property(std::string name, std::initializer_list<value> values)
+inline property::property(const std::string& name, std::initializer_list<value> values)
 {
     detail::output_after_first_call output_after_first_call;
     std::ostringstream stream;
@@ -220,34 +220,34 @@ inline prefix google_test_prefix()
 }
 
 inline output::output(prefix prefix)
-    : m_prefix{prefix.get()}
+    : m_prefix{std::move(prefix)}
 {}
 
-inline output::output(value value)
+inline output::output(const value& value)
 {
     *this += value;
 }
 
-inline output::output(property property)
+inline output::output(const property& property)
 {
     *this += property;
 }
 
-inline output::output(prefix prefix, property property)
+inline output::output(prefix prefix, const property& property)
     : m_prefix{std::move(prefix)}
 {
     *this += property;
 }
 
-inline output::output(prefix prefix, value value)
+inline output::output(prefix prefix, const value& value)
     : m_prefix{std::move(prefix)}
 {
     *this += value;
 }
 
-inline output& output::operator+=(property property)
+inline output& output::operator+=(const property& property)
 {
-    std::string& source = property.m_formatted.get();
+    const std::string& source = property.m_formatted.get();
     std::string& target = m_formatted.get();
     std::string& prefix = m_prefix.get();
 
@@ -258,9 +258,9 @@ inline output& output::operator+=(property property)
     return *this;
 }
 
-inline output& output::operator+=(value value)
+inline output& output::operator+=(const value& value)
 {
-    std::string& source = value.m_formatted.get();
+    const std::string& source = value.m_formatted.get();
     std::string& target = m_formatted.get();
     std::string& prefix = m_prefix.get();
     
