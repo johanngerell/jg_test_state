@@ -107,18 +107,20 @@ std::string surround(const std::string& text, const std::string& left, const std
 std::string quote(const std::string& text);
 
 template <typename T>
-void value(std::ostream& stream, const T& value);
-void value(std::ostream& stream, std::string value);
-void value(std::ostream& stream, void* value);
-void value(std::ostream& stream, const void* value);
-void value(std::ostream& stream, char* value);
-void value(std::ostream& stream, const char* value);
-void value(std::ostream& stream, bool value);
+void output_value(std::ostream& stream, const T& value);
+void output_value(std::ostream& stream, std::string value);
+void output_value(std::ostream& stream, void* value);
+void output_value(std::ostream& stream, const void* value);
+void output_value(std::ostream& stream, char* value);
+void output_value(std::ostream& stream, const char* value);
+void output_value(std::ostream& stream, bool value);
 
-class append_after_first_call final
+/// Function object that outputs a string to a stream when called, unless it's the first time it's called.
+/// Use this for separating output items during iteration, like "1, apple, 3, false".
+class output_after_first_call final
 {
 public:
-    append_after_first_call(std::string string);
+    output_after_first_call(std::string string);
     std::ostream& operator()(std::ostream& stream);
 
 private:
@@ -137,7 +139,7 @@ value::value(const T& value)
 {
     static_assert(!std::is_same<property, T>::value, "A 'value' cannot be constructed from a 'property'");
     std::ostringstream stream;
-    detail::value(stream, value);
+    detail::output_value(stream, value);
     m_formatted = stream.str();
 }
 
@@ -145,40 +147,40 @@ template <typename T>
 value::value(std::initializer_list<T> array_values)
 {
     static_assert(!std::is_same<property, T>::value, "A 'value' cannot be constructed from a 'property'");
-    detail::append_after_first_call append_comma{", "};
+    detail::output_after_first_call output_comma{", "};
     std::ostringstream value_stream;
     for (const auto &value : array_values) {
-        append_comma(value_stream);
-        detail::value(value_stream, value);
+        output_comma(value_stream);
+        detail::output_value(value_stream, value);
     }
     m_formatted = detail::surround(value_stream.str(), "[", "]");
 }
 
 inline value object(std::initializer_list<property> properties)
 {
-    detail::append_after_first_call append_comma{", "};
+    detail::output_after_first_call output_comma{", "};
     std::ostringstream property_stream;
     for (const auto& property : properties)
-        append_comma(property_stream) << property;
+        output_comma(property_stream) << property;
     return value(formatted(detail::surround(property_stream.str(), "{", "}")));
 }
 
 inline value array(std::initializer_list<value> values)
 {
-    detail::append_after_first_call append_comma{", "};
+    detail::output_after_first_call output_comma{", "};
     std::ostringstream value_stream;
     for (const auto& value : values)
-        append_comma(value_stream) << value;
+        output_comma(value_stream) << value;
     return value(formatted(detail::surround(value_stream.str(), "[", "]")));
 }
 
 template <typename TIterator>
 value array(TIterator first_value, TIterator last_value)
 {
-    detail::append_after_first_call append_comma{", "};
+    detail::output_after_first_call output_comma{", "};
     std::ostringstream value_stream;
     for (TIterator it = first_value; it != last_value; ++it)
-        append_comma(value_stream) << value(*it);
+        output_comma(value_stream) << value(*it);
     return value(formatted(detail::surround(value_stream.str(), "[", "]")));
 }
 
@@ -197,10 +199,10 @@ inline property::property(std::string name, value value)
 
 inline property::property(std::string name, std::initializer_list<value> values)
 {
-    detail::append_after_first_call append_comma{", "};
+    detail::output_after_first_call output_comma{", "};
     std::ostringstream property_stream;
     for (const auto& value : values)
-        append_comma(property_stream) << value;
+        output_comma(property_stream) << value;
 
     std::ostringstream stream;
     stream << detail::quote(name) << ": " << detail::surround(property_stream.str(), "[", "]");
@@ -298,22 +300,22 @@ inline std::string quote(const std::string& text)
 }
 
 template <typename T>
-void value(std::ostream& stream, const T& value)
+void output_value(std::ostream& stream, const T& value)
 {
     stream << value;
 }
 
-inline void value(std::ostream& stream, std::string value)
+inline void output_value(std::ostream& stream, std::string value)
 {
     stream << quote(value);
 }
 
-inline void value(std::ostream& stream, void* value_)
+inline void output_value(std::ostream& stream, void* value_)
 {
-    value(stream, const_cast<const void*>(value_));
+    output_value(stream, const_cast<const void*>(value_));
 }
 
-inline void value(std::ostream& stream, const void* value)
+inline void output_value(std::ostream& stream, const void* value)
 {
     stream << "0x"
            << std::hex
@@ -322,26 +324,26 @@ inline void value(std::ostream& stream, const void* value)
            << reinterpret_cast<std::uintptr_t>(value);
 }
 
-inline void value(std::ostream& stream, char* value)
+inline void output_value(std::ostream& stream, char* value)
 {
     stream << quote(value);
 }
 
-inline void value(std::ostream& stream, const char* value)
+inline void output_value(std::ostream& stream, const char* value)
 {
     stream << quote(value);
 }
 
-inline void value(std::ostream& stream, bool value)
+inline void output_value(std::ostream& stream, bool value)
 {
     stream << std::boolalpha << value;
 }
 
-inline append_after_first_call::append_after_first_call(std::string string)
+inline output_after_first_call::output_after_first_call(std::string string)
     : m_string{std::move(string)}
 {}
 
-inline std::ostream& append_after_first_call::operator()(std::ostream& stream)
+inline std::ostream& output_after_first_call::operator()(std::ostream& stream)
 {
     if (m_after_first)
         stream << m_string;
