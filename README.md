@@ -59,13 +59,13 @@ Output:
 
 The `output` constructor takes an optional prefix parameter ("prefix: " in the example above -- by default an empty string) that starts each output line. This is useful with test frameworks that output lines with a specific and consistent line start format.
 
-For instance, Google Test uses "[. . . . .] " with labels between the brackets, like "[    OK    ] ". Using `output` with Google Test in a way that aligns state output with the rest of the test output is as easy as instantiating `output` with `prefix::google_test()`:
+For instance, Google Test uses "[. . . . .] " with labels between the brackets, like "[    OK    ] ". Using `output` with Google Test in a way that aligns state output with the rest of the test output is as easy as instantiating `output` with `google_test_prefix()`:
 
 ```cpp
 using namespace jg::test_state;
 
 // In a test case with a succeeding EXPECT_...
-output state{prefix::google_test()};
+output state{google_test_prefix()};
 state += 4711;
 state += "foo";
 
@@ -87,7 +87,7 @@ Only outputting state when an EXPECT_... fails:
 using namespace jg::test_state;
 
 // In a test case with a failing EXPECT_...
-output state{prefix::google_test()};
+output state{google_test_prefix};
 state += 4711;
 state += "foo";
 
@@ -108,7 +108,7 @@ Or as an object without an explicit `output` instance:
 ```cpp
 using namespace jg::test_state;
 
-EXPECT_TRUE(condition) << output(prefix::google_test(),
+EXPECT_TRUE(condition) << output(google_test_prefix(),
     object
     ({
         { "int", 4711 },
@@ -129,7 +129,7 @@ Or as an array without an explicit `output` instance:
 ```cpp
 using namespace jg::test_state;
 
-EXPECT_TRUE(condition) << output(prefix::google_test(),
+EXPECT_TRUE(condition) << output(google_test_prefix(),
     array({ 4711, "foo" })
 );
 ```

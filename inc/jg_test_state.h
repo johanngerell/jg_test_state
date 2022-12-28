@@ -89,11 +89,12 @@ public:
     prefix() = default;
     explicit prefix(std::string value);
     operator std::string() const;
-    static prefix google_test();
 
 private:
     std::string m_value;
 };
+
+prefix google_test_prefix();
 
 class formatted final
 {
@@ -217,7 +218,7 @@ inline prefix::operator std::string() const
     return m_value;
 }
 
-inline prefix prefix::google_test()
+inline prefix google_test_prefix()
 {
     return prefix{"[    STATE ] "};
 }

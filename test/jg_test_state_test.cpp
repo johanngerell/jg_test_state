@@ -327,7 +327,7 @@ static void test_prefix()
     }
 
     {
-        output state(prefix::google_test());
+        output state(google_test_prefix());
         state += 1;
         state += 2;
         state += 3;
@@ -338,27 +338,27 @@ static void test_prefix()
     //
 
     {
-        output state(prefix::google_test(), 1);
+        output state(google_test_prefix(), 1);
         assert(to_string(state) == "[    STATE ] 1");
     }
 
     {
-        output state(prefix::google_test(), {"one", 1});
+        output state(google_test_prefix(), {"one", 1});
         assert(to_string(state) == "[    STATE ] \"one\": 1");
     }
 
     {
-        output state(prefix::google_test(), object({{"one", 1}}));
+        output state(google_test_prefix(), object({{"one", 1}}));
         assert(to_string(state) == "[    STATE ] { \"one\": 1 }");
     }
 
     {
-        output state(prefix::google_test(), array({1, 2}));
+        output state(google_test_prefix(), array({1, 2}));
         assert(to_string(state) == "[    STATE ] [ 1, 2 ]");
     }
 
     {
-        output state(prefix::google_test(), array({"two", 2}));
+        output state(google_test_prefix(), array({"two", 2}));
         assert(to_string(state) == "[    STATE ] [ \"two\", 2 ]");
     }
 }
