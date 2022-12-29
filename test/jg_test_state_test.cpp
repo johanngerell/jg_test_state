@@ -153,13 +153,43 @@ static void test_static_ctors_simple_value()
 static void test_ctors_complex_value()
 {
     {
+        output state = array({
+            vector2d{1,2},
+            vector2d{3,4}
+        });
+        assert(to_string(state) == "[ (1,2), (3,4) ]");
+    }
+
+    {
         output state {
-            {
+            array({
                 vector2d{1,2},
                 vector2d{3,4}
-            }
+            })
         };
         assert(to_string(state) == "[ (1,2), (3,4) ]");
+    }
+
+    {
+        output state = array({
+            true,
+            1,
+            false,
+            "foo"
+        });
+        assert(to_string(state) == "[ true, 1, false, \"foo\" ]");
+    }
+
+    {
+        output state {
+            array({
+                true,
+                1,
+                false,
+                "foo"
+            })
+        };
+        assert(to_string(state) == "[ true, 1, false, \"foo\" ]");
     }
 
     {
@@ -179,7 +209,7 @@ static void test_ctors_complex_value()
                     ({
                         4711, 4712, 4713
                     })
-                })    
+                })
             })
         };
         assert(to_string(state) == R"([ 4711, [ 4711, { "4711": 4711, "4712": 4712 }, [ 4711, 4712, 4713 ] ] ])");
@@ -189,13 +219,25 @@ static void test_ctors_complex_value()
 static void test_ctors_complex_property()
 {
     {
+        output state =
+            property {
+                "points",
+                array({
+                    vector2d{1,2},
+                    vector2d{3,4}
+                })
+            };
+        assert(to_string(state) == "\"points\": [ (1,2), (3,4) ]");
+    }
+
+    {
         output state {
             {
                 "points",
-                {
+                array({
                     vector2d{1,2},
                     vector2d{3,4}
-                }
+                })
             }
         };
         assert(to_string(state) == "\"points\": [ (1,2), (3,4) ]");
@@ -473,6 +515,14 @@ static void test_array()
 
     {
         output state;
+        std::initializer_list<int> empty;
+        state += array(empty);
+
+        assert(to_string(state) == R"([])");
+    }
+
+    {
+        output state;
         state += array(std::vector<int>{});
 
         assert(to_string(state) == R"([])");
@@ -516,97 +566,70 @@ static void test_array()
 static void test_value()
 {
     {
-        value v1(true);
+        value v1 = true;
         assert(to_string(v1) == "true");
 
-        value v2({true});
+        value v2 = array({true});
         assert(to_string(v2) == "[ true ]");
-
-        value v3{true};
-        assert(to_string(v3) == "[ true ]");
     }
 
     {
-        value v1(false);
+        value v1 = false;
         assert(to_string(v1) == "false");
 
-        value v2({false});
+        value v2 = array({false});
         assert(to_string(v2) == "[ false ]");
-
-        value v3{false};
-        assert(to_string(v3) == "[ false ]");
     }
 
     {
         uintptr_t dummy_address = 0x00000000deadbeef;
         void* dummy_pointer = reinterpret_cast<void*>(dummy_address);
 
-        value v1(dummy_pointer);
+        value v1 = dummy_pointer;
         assert(to_string(v1) == "0x00000000deadbeef");
 
-        value v2({dummy_pointer});
+        value v2 = array({dummy_pointer});
         assert(to_string(v2) == "[ 0x00000000deadbeef ]");
-
-        value v3{dummy_pointer};
-        assert(to_string(v3) == "[ 0x00000000deadbeef ]");
     }
 
     {
         const uintptr_t dummy_address = 0x00000000deadbeef;
         const void* dummy_pointer = reinterpret_cast<void*>(dummy_address);
 
-        value v1(dummy_pointer);
+        value v1 = dummy_pointer;
         assert(to_string(v1) == "0x00000000deadbeef");
 
-        value v2({dummy_pointer});
+        value v2 = array({dummy_pointer});
         assert(to_string(v2) == "[ 0x00000000deadbeef ]");
-
-        value v3{dummy_pointer};
-        assert(to_string(v3) == "[ 0x00000000deadbeef ]");
     }
 
     {
-        value v1("foobar");
+        value v1 = "foobar";
         assert(to_string(v1) == R"("foobar")");
 
-        value v2({"foobar"});
+        value v2 = array({"foobar"});
         assert(to_string(v2) == R"([ "foobar" ])");
-
-        value v3{"foobar"};
-        assert(to_string(v3) == R"([ "foobar" ])");
     }
 
     {
-        value v1(std::string{"foobar"});
+        value v1 = std::string{"foobar"};
         assert(to_string(v1) == R"("foobar")");
 
-        value v2({std::string{"foobar"}});
+        value v2 = array({std::string{"foobar"}});
         assert(to_string(v2) == R"([ "foobar" ])");
-
-        value v3{std::string{"foobar"}};
-        assert(to_string(v3) == R"([ "foobar" ])");
     }
 
     {
-        value v1(4711);
+        value v1 = 4711;
         assert(to_string(v1) == "4711");
 
-        value v2({4711});
+        value v2 = array({4711});
         assert(to_string(v2) == "[ 4711 ]");
-
-        value v3{4711};
-        assert(to_string(v3) == "[ 4711 ]");
     }
 
     {
-        value v1({4711, 4712, 4713});
+        value v1 = array({4711, 4712, 4713});
         assert(to_string(v1) == "[ 4711, 4712, 4713 ]");
-
-        value v2{4711, 4712, 4713};
-        assert(to_string(v2) == "[ 4711, 4712, 4713 ]");
-
-        value v3{{4711, 4712, 4713}};
-        assert(to_string(v3) == "[ 4711, 4712, 4713 ]");
     }
 
     {
@@ -648,13 +671,15 @@ static void test_property()
         property p1("p1", true);
         assert(to_string(p1) == R"("p1": true)");
 
-        property p2("p2", {true});
-        assert(to_string(p2) == R"("p2": [ true ])");
-
         property p3{"p3", true};
         assert(to_string(p3) == R"("p3": true)");
+    }
 
-        property p4{"p4", {true}};
+    {
+        property p2("p2", array({true}));
+        assert(to_string(p2) == R"("p2": [ true ])");
+
+        property p4{"p4", array({true})};
         assert(to_string(p4) == R"("p4": [ true ])");
     }
 
@@ -662,13 +687,15 @@ static void test_property()
         property p1("p1", false);
         assert(to_string(p1) == R"("p1": false)");
 
-        property p2("p2", {false});
-        assert(to_string(p2) == R"("p2": [ false ])");
-
         property p3{"p3", false};
         assert(to_string(p3) == R"("p3": false)");
+    }
 
-        property p4{"p4", {false}};
+    {
+        property p2("p2", array({false}));
+        assert(to_string(p2) == R"("p2": [ false ])");
+
+        property p4{"p4", array({false})};
         assert(to_string(p4) == R"("p4": [ false ])");
     }
 
@@ -679,13 +706,18 @@ static void test_property()
         property p1("p1", dummy_pointer);
         assert(to_string(p1) == R"("p1": 0x00000000deadbeef)");
 
-        property p2("p2", {dummy_pointer});
-        assert(to_string(p2) == R"("p2": [ 0x00000000deadbeef ])");
-
         property p3{"p3", dummy_pointer};
         assert(to_string(p3) == R"("p3": 0x00000000deadbeef)");
+    }
 
-        property p4{"p4", {dummy_pointer}};
+    {
+        uintptr_t dummy_address = 0x00000000deadbeef;
+        void* dummy_pointer = reinterpret_cast<void*>(dummy_address);
+
+        property p2("p2", array({dummy_pointer}));
+        assert(to_string(p2) == R"("p2": [ 0x00000000deadbeef ])");
+
+        property p4{"p4", array({dummy_pointer})};
         assert(to_string(p4) == R"("p4": [ 0x00000000deadbeef ])");
     }
 
@@ -696,13 +728,18 @@ static void test_property()
         property p1("p1", dummy_pointer);
         assert(to_string(p1) == R"("p1": 0x00000000deadbeef)");
 
-        property p2("p2", {dummy_pointer});
-        assert(to_string(p2) == R"("p2": [ 0x00000000deadbeef ])");
-
         property p3{"p3", dummy_pointer};
         assert(to_string(p3) == R"("p3": 0x00000000deadbeef)");
+    }
 
-        property p4{"p4", {dummy_pointer}};
+    {
+        const uintptr_t dummy_address = 0x00000000deadbeef;
+        const void* dummy_pointer = reinterpret_cast<void*>(dummy_address);
+
+        property p2("p2", array({dummy_pointer}));
+        assert(to_string(p2) == R"("p2": [ 0x00000000deadbeef ])");
+
+        property p4{"p4", array({dummy_pointer})};
         assert(to_string(p4) == R"("p4": [ 0x00000000deadbeef ])");
     }
 
@@ -710,13 +747,15 @@ static void test_property()
         property p1("p1", "foobar");
         assert(to_string(p1) == R"("p1": "foobar")");
 
-        property p2("p2", {"foobar"});
-        assert(to_string(p2) == R"("p2": [ "foobar" ])");
-
         property p3{"p3", "foobar"};
         assert(to_string(p3) == R"("p3": "foobar")");
+    }
 
-        property p4{"p4", {"foobar"}};
+    {
+        property p2("p2", array({"foobar"}));
+        assert(to_string(p2) == R"("p2": [ "foobar" ])");
+
+        property p4{"p4", array({"foobar"})};
         assert(to_string(p4) == R"("p4": [ "foobar" ])");
     }
 
@@ -724,13 +763,15 @@ static void test_property()
         property p1("p1", std::string{"foobar"});
         assert(to_string(p1) == R"("p1": "foobar")");
 
-        property p2("p2", {std::string{"foobar"}});
-        assert(to_string(p2) == R"("p2": [ "foobar" ])");
-
         property p3{"p3", std::string{"foobar"}};
         assert(to_string(p3) == R"("p3": "foobar")");
+    }
 
-        property p4{"p4", {std::string{"foobar"}}};
+    {
+        property p2("p2", array({std::string{"foobar"}}));
+        assert(to_string(p2) == R"("p2": [ "foobar" ])");
+
+        property p4{"p4", array({std::string{"foobar"}})};
         assert(to_string(p4) == R"("p4": [ "foobar" ])");
     }
 
@@ -738,47 +779,46 @@ static void test_property()
         property p1("p1", 4711);
         assert(to_string(p1) == R"("p1": 4711)");
 
-        property p2("p2", {4711});
-        assert(to_string(p2) == R"("p2": [ 4711 ])");
-
         property p3{"p3", 4711};
         assert(to_string(p3) == R"("p3": 4711)");
+    }
 
-        property p4{"p4", {4711}};
+    {
+        property p2("p2", array({4711}));
+        assert(to_string(p2) == R"("p2": [ 4711 ])");
+
+        property p4{"p4", array({4711})};
         assert(to_string(p4) == R"("p4": [ 4711 ])");
     }
 
     //---------------------------
 
     {
-        property p1("p1", {4711, 4712, 4713});
+        property p1("p1", array({4711, 4712, 4713}));
         assert(to_string(p1) == R"("p1": [ 4711, 4712, 4713 ])");
 
-        property p2{"p2", {4711, 4712, 4713}};
+        property p2{"p2", array({4711, 4712, 4713})};
         assert(to_string(p2) == R"("p2": [ 4711, 4712, 4713 ])");
 
-        property p3("p3", {4711, "4712", 4713, true});
+        property p3("p3", array({4711, "4712", 4713, true}));
         assert(to_string(p3) == R"("p3": [ 4711, "4712", 4713, true ])");
 
-        property p4{"p4", {4711, "4712", 4713, true}};
+        property p4{"p4", array({4711, "4712", 4713, true})};
         assert(to_string(p4) == R"("p4": [ 4711, "4712", 4713, true ])");
 
-        property p5 = {"p5", {4711, "4712", 4713, true}};
+        property p5 = {"p5", array({4711, "4712", 4713, true})};
         assert(to_string(p5) == R"("p5": [ 4711, "4712", 4713, true ])");
 
-        property p6 = {"p6", {4711, "4712", {1, 2, 3, 4}, true}};
-        assert(to_string(p6) == R"("p6": [ 4711, "4712", [ 1, 2, 3, 4 ], true ])");
-
-        property p7 = {"p7", {4711, "4712", {value(false), value(0), value(""), value((void*)0)}, true}};
+        property p7 = {"p7", array({4711, "4712", array({false, 0, "", (void*)0}), true})};
         assert(to_string(p7) == R"("p7": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
 
-        property p8 = {"p8", {4711, "4712", {value(false), value(0), value(""), value((const void*)0)}, true}};
+        property p8 = {"p8", array({4711, "4712", array({false, 0, "", (const void*)0}), true})};
         assert(to_string(p8) == R"("p8": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
 
-        property p9 = {"p9", {4711, "4712", array({false, 0, "", (void*)0}), true}};
+        property p9 = {"p9", array({4711, "4712", array({false, 0, "", (void*)0}), true})};
         assert(to_string(p9) == R"("p9": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
 
-        property p10 = {"p10", {4711, "4712", array({false, 0, "", (const void*)0}), true}};
+        property p10 = {"p10", array({4711, "4712", array({false, 0, "", (const void*)0}), true})};
         assert(to_string(p10) == R"("p10": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
     }
 }

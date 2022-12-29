@@ -11,11 +11,14 @@ namespace test_state {
 
 namespace detail {
 
+/// A strong type used for avoiding that certain string-based parameters -- that aren't semantically
+/// values -- are template-resolved as values.
 template <typename T, typename Tag>
 struct strong_type final
 {
-    strong_type() = default;
-    explicit strong_type(T value) : underlying{std::move(value)} {}
+    explicit strong_type(T value)
+        : underlying{std::move(value)}
+    {}
 
     friend std::ostream& operator<<(std::ostream& stream, const strong_type& value)
     {
@@ -63,9 +66,8 @@ private:
 class value final
 {
 public:
-    value(formatted formatted);
+    explicit value(formatted formatted);
     template <typename T> value(const T& value);
-    template <typename T> value(std::initializer_list<T> array_values);
 
     friend std::ostream& operator<<(std::ostream& stream, const value& value)
     {
@@ -76,12 +78,11 @@ private:
     friend output;
     friend property;
 
-    value() = default;
-
     std::string m_formatted;
 };
 
 value array(std::initializer_list<value> values);
+template <typename T> value array(std::initializer_list<T> values);
 template <typename TIterator> value array(TIterator first_value, TIterator last_value);
 template <typename TRange> value array(const TRange& values);
 
@@ -91,7 +92,6 @@ class property final
 {
 public:
     property(const std::string& name, const value& value);
-    property(const std::string& name, std::initializer_list<value> values);
 
     friend std::ostream& operator<<(std::ostream& stream, const property& property)
     {
@@ -144,35 +144,24 @@ value::value(const T& value)
     m_formatted = stream.str();
 }
 
-template <typename T>
-value::value(std::initializer_list<T> array_values)
-{
-    static_assert(!std::is_same<property, T>::value, "A 'value' cannot be constructed from a 'property'");
-    detail::output_after_first_call output_after_first_call;
-    std::ostringstream stream;
-    for (const auto& value : array_values) {
-        output_after_first_call(stream, ", ");
-        detail::output_value(stream, value);
-    }
-    m_formatted = detail::surround(stream.str(), "[", "]");
-}
-
 inline value object(std::initializer_list<property> properties)
 {
     detail::output_after_first_call output_after_first_call;
     std::ostringstream stream;
     for (const auto& property : properties)
         output_after_first_call(stream, ", ") << property;
-    return value(formatted(detail::surround(stream.str(), "{", "}")));
+    return value{formatted(detail::surround(stream.str(), "{", "}"))};
 }
 
 inline value array(std::initializer_list<value> values)
 {
-    detail::output_after_first_call output_after_first_call;
-    std::ostringstream stream;
-    for (const auto& value : values)
-        output_after_first_call(stream, ", ") << value;
-    return value(formatted(detail::surround(stream.str(), "[", "]")));
+    return array(values.begin(), values.end());
+}
+
+template <typename T>
+value array(std::initializer_list<T> values)
+{
+    return array(values.begin(), values.end());
 }
 
 template <typename TIterator>
@@ -182,7 +171,7 @@ value array(TIterator first_value, TIterator last_value)
     std::ostringstream stream;
     for (TIterator it = first_value; it != last_value; ++it)
         output_after_first_call(stream, ", ") << value(*it);
-    return value(formatted(detail::surround(stream.str(), "[", "]")));
+    return value{formatted(detail::surround(stream.str(), "[", "]"))};
 }
 
 template <typename TRange>
@@ -195,15 +184,6 @@ inline property::property(const std::string& name, const value& value)
 {
     m_formatted.reserve(name.length() + 2 + 2 + value.m_formatted.length());
     m_formatted.append(detail::quote(name)).append(": ").append(value.m_formatted);
-}
-
-inline property::property(const std::string& name, std::initializer_list<value> values)
-{
-    detail::output_after_first_call output_after_first_call;
-    std::ostringstream stream;
-    for (const auto& value : values)
-        output_after_first_call(stream, ", ") << value;
-    *this = property(name, value(formatted(detail::surround(stream.str(), "[", "]"))));
 }
 
 inline prefix google_test_prefix()
@@ -287,9 +267,9 @@ inline void output_value(std::ostream& stream, std::string value)
     stream << quote(value);
 }
 
-inline void output_value(std::ostream& stream, void* value_)
+inline void output_value(std::ostream& stream, void* value)
 {
-    output_value(stream, const_cast<const void*>(value_));
+    output_value(stream, const_cast<const void*>(value));
 }
 
 inline void output_value(std::ostream& stream, const void* value)
