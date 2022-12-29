@@ -473,6 +473,30 @@ static void test_user_defined_type()
     }
 }
 
+static void test_object()
+{
+    {
+        output state;
+        state += object({"number", 4711});
+
+        assert(to_string(state) == R"({ "number": 4711 })");
+    }
+
+    {
+        output state;
+        state += object({{"number", 4711}});
+
+        assert(to_string(state) == R"({ "number": 4711 })");
+    }
+
+    {
+        output state;
+        state += object({{"number", 4711}, {"string", "foo"}});
+
+        assert(to_string(state) == R"({ "number": 4711, "string": "foo" })");
+    }
+}
+
 static void test_array()
 {
     const std::initializer_list<std::string> nato_list { "alpha", "bravo", "charlie" };
@@ -847,6 +871,7 @@ int main()
     test_user_defined_type();
     test_user_defined_output();
 
+    test_object();
     test_array();
     test_prefix();
 

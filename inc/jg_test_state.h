@@ -11,8 +11,9 @@ namespace test_state {
 
 namespace detail {
 
-/// A strong type used for avoiding that certain string-based parameters -- that aren't semantically
-/// values -- are template-resolved as values.
+/// A "strong type" to prevent certain string-based parameters -- that aren't semantically
+/// values -- from being template-resolved as values due to the value class "auto resolve"
+/// constructor being implicit.
 template <typename T, typename Tag>
 struct strong_type final
 {
@@ -85,6 +86,7 @@ value array(std::initializer_list<value> values);
 template <typename TIterator> value array(TIterator first_value, TIterator last_value);
 template <typename TRange> value array(const TRange& values);
 
+value object(property property);
 value object(std::initializer_list<property> properties);
 
 class property final
@@ -141,6 +143,13 @@ value::value(const T& value)
     std::ostringstream stream;
     detail::output_value(stream, value);
     m_formatted = stream.str();
+}
+
+inline value object(property property)
+{
+    std::ostringstream stream;
+    stream << property;
+    return value{formatted(detail::surround(stream.str(), "{", "}"))};
 }
 
 inline value object(std::initializer_list<property> properties)
