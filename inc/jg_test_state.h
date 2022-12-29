@@ -82,7 +82,6 @@ private:
 };
 
 value array(std::initializer_list<value> values);
-template <typename T> value array(std::initializer_list<T> values);
 template <typename TIterator> value array(TIterator first_value, TIterator last_value);
 template <typename TRange> value array(const TRange& values);
 
@@ -158,19 +157,13 @@ inline value array(std::initializer_list<value> values)
     return array(values.begin(), values.end());
 }
 
-template <typename T>
-value array(std::initializer_list<T> values)
-{
-    return array(values.begin(), values.end());
-}
-
 template <typename TIterator>
 value array(TIterator first_value, TIterator last_value)
 {
     detail::output_after_first_call output_after_first_call;
     std::ostringstream stream;
     for (TIterator it = first_value; it != last_value; ++it)
-        output_after_first_call(stream, ", ") << value(*it);
+        output_after_first_call(stream, ", ") << value{*it};
     return value{formatted(detail::surround(stream.str(), "[", "]"))};
 }
 

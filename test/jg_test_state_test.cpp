@@ -479,6 +479,15 @@ static void test_array()
     const std::vector<std::string> nato_vector { nato_list };
     
     {
+        const std::string nato_array[] { "alpha", "bravo", "charlie" };
+
+        output state;
+        state += array(nato_array);
+
+        assert(to_string(state) == R"([ "alpha", "bravo", "charlie" ])");
+    }
+
+    {
         output state;
         state += array(nato_vector);
 
@@ -497,6 +506,13 @@ static void test_array()
         state += array(nato_list);
 
         assert(to_string(state) == R"([ "alpha", "bravo", "charlie" ])");
+    }
+
+    {
+        output state;
+        state += array({1, "1", true});
+
+        assert(to_string(state) == R"([ 1, "1", true ])");
     }
 
     {
