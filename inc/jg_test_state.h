@@ -78,6 +78,9 @@ public:
 private:
     friend output;
     friend property;
+    template <typename TIterator>
+    friend value array(TIterator, TIterator);
+
 
     std::string m_formatted;
 };
@@ -101,6 +104,8 @@ public:
 
 private:
     friend output;
+    friend value object(property);
+    friend value object(std::initializer_list<property>);
 
     std::string m_formatted;
 };
@@ -119,17 +124,6 @@ void output_value(std::ostream& stream, char* value);
 void output_value(std::ostream& stream, const char* value);
 void output_value(std::ostream& stream, bool value);
 
-/// Function object that outputs a string to a stream when called, unless it's the first time it's called.
-/// Use this for separating output items during iteration, like "1, apple, 3, false".
-class output_after_first_call final
-{
-public:
-    std::ostream& operator()(std::ostream& stream, const std::string& string);
-
-private:
-    bool m_after_first{false};
-};
-
 } // namespace detail
 
 inline value::value(formatted formatted)
@@ -147,18 +141,15 @@ value::value(const T& value)
 
 inline value object(property property)
 {
-    std::ostringstream stream;
-    stream << property;
-    return value{formatted(detail::surround(stream.str(), "{", "}"))};
+    return value{formatted(detail::surround(property.m_formatted, "{", "}"))};
 }
 
 inline value object(std::initializer_list<property> properties)
 {
-    detail::output_after_first_call output_after_first_call;
-    std::ostringstream stream;
-    for (const auto& property : properties)
-        output_after_first_call(stream, ", ") << property;
-    return value{formatted(detail::surround(stream.str(), "{", "}"))};
+    std::string list;
+    for (auto it = properties.begin(); it != properties.end(); ++it)
+        list.append(it != properties.begin() ? ", " : "").append(it->m_formatted);
+    return value{formatted(detail::surround(list, "{", "}"))};
 }
 
 inline value array(std::initializer_list<value> values)
@@ -167,13 +158,12 @@ inline value array(std::initializer_list<value> values)
 }
 
 template <typename TIterator>
-value array(TIterator first_value, TIterator last_value)
+value array(TIterator first, TIterator last)
 {
-    detail::output_after_first_call output_after_first_call;
-    std::ostringstream stream;
-    for (TIterator it = first_value; it != last_value; ++it)
-        output_after_first_call(stream, ", ") << value{*it};
-    return value{formatted(detail::surround(stream.str(), "[", "]"))};
+    std::string list;
+    for (TIterator it = first; it != last; ++it)
+        list.append(it != first ? ", " : "").append(value{*it}.m_formatted);
+    return value{formatted(detail::surround(list, "[", "]"))};
 }
 
 template <typename TRange>
@@ -296,15 +286,6 @@ inline void output_value(std::ostream& stream, const char* value)
 inline void output_value(std::ostream& stream, bool value)
 {
     stream << std::boolalpha << value;
-}
-
-inline std::ostream& output_after_first_call::operator()(std::ostream& stream, const std::string& string)
-{
-    if (m_after_first)
-        stream << string;
-    else
-        m_after_first = true;
-    return stream;
 }
 
 } // namespace detail

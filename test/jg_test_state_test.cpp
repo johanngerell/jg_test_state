@@ -161,6 +161,14 @@ static void test_ctors_complex_value()
     }
 
     {
+        output state = object({
+            {"p1", vector2d{1,2}},
+            {"p2", vector2d{3,4}}
+        });
+        assert(to_string(state) == R"({ "p1": (1,2), "p2": (3,4) })");
+    }
+
+    {
         output state {
             array({
                 vector2d{1,2},
@@ -168,6 +176,16 @@ static void test_ctors_complex_value()
             })
         };
         assert(to_string(state) == "[ (1,2), (3,4) ]");
+    }
+
+    {
+        output state {
+            object({
+                {"p1", vector2d{1,2}},
+                {"p2", vector2d{3,4}}
+            })
+        };
+        assert(to_string(state) == R"({ "p1": (1,2), "p2": (3,4) })");
     }
 
     {
@@ -181,6 +199,16 @@ static void test_ctors_complex_value()
     }
 
     {
+        output state = object({
+            {"true", true},
+            {"1", 1},
+            {"false", false},
+            {"foo", "foo"}
+        });
+        assert(to_string(state) == R"({ "true": true, "1": 1, "false": false, "foo": "foo" })");
+    }
+
+    {
         output state {
             array({
                 true,
@@ -190,6 +218,18 @@ static void test_ctors_complex_value()
             })
         };
         assert(to_string(state) == "[ true, 1, false, \"foo\" ]");
+    }
+
+    {
+        output state {
+            object({
+                {"true", true},
+                {"1", 1},
+                {"false", false},
+                {"foo", "foo"}
+            })
+        };
+        assert(to_string(state) == R"({ "true": true, "1": 1, "false": false, "foo": "foo" })");
     }
 
     {
