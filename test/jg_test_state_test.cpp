@@ -477,6 +477,28 @@ static void test_user_defined_type()
         particle.position = {1, 2};
         particle.velocity = {3, 4};
 
+        output state = object({{"position", object({{"x", particle.position.x}, {"y", particle.position.y}})},
+                               {"velocity", object({{"vx", particle.velocity.x}, {"vy", particle.velocity.y}})}});
+
+        assert(to_string(state) == R"({ "position": { "x": 1, "y": 2 }, "velocity": { "vx": 3, "vy": 4 } })"); 
+    }
+
+    {
+        moving_particle particle;
+        particle.position = {1, 2};
+        particle.velocity = {3, 4};
+
+        output state ({ "particle", object({{"position", object({{"x", particle.position.x}, {"y", particle.position.y}})},
+                               {"velocity", object({{"vx", particle.velocity.x}, {"vy", particle.velocity.y}})}})});
+
+        assert(to_string(state) == R"("particle": { "position": { "x": 1, "y": 2 }, "velocity": { "vx": 3, "vy": 4 } })"); 
+    }
+
+    {
+        moving_particle particle;
+        particle.position = {1, 2};
+        particle.velocity = {3, 4};
+
         output state;
         state +=
         { "particle", object({

@@ -2,12 +2,12 @@
 
 ## TL;DR
 
-A simple C++ header library that makes it easy to "record" current state in (mainly) tests and output it nicely formatted (JSON-ish) when tests run or just when they fail.
+A simple C++ header library that makes it easy to "record" current state in (mainly) tests and output it nicely formatted (JSON-ish) when tests run or (optionally) just when they fail.
 
 The major benefits of using `jg::test_state` compared to manually stream data directly to `std::cout`, for example, is that `jg::test_state`
 
-  - outputs structured data well formatted
-  - yields an object to reuse in many places -- a `jg::test_state::output` instance can be streamed to any `std::ostream`-derived instance with `operator<<`.
+  - outputs structured data nicely formatted
+  - yields an object that can be reused in many places -- a `jg::test_state::output` instance can be streamed to any `std::ostream`-derived instance.
 
 ## Usage
 
@@ -17,20 +17,65 @@ There are three classes to use:
   - `jg::test_state::property`
   - `jg::test_state::output`
 
-And two helper functions that create specific kinds of `value` instances:
+And two helper functions (with overloads) that create specific kinds of `jg::test_state::value` instances -- like JSON:
 
   - `jg::test_state::object(...)`
   - `jg::test_state::array(...)`
 
-The workhorse here is `value`. It outputs the actual state data. In contrast to a JSON value, this can be of any type that can be output to a `std::ostream`, and `value` formats the output depending on the type and content of the data. For instance, strings are enclosed in double quotes, and boolean data becomes *true* or *false*.
+The workhorse here is `jg::test_state::value`, or just `value` going forward. It outputs the actual state data. In contrast to a regular JSON value, the state data can be of any type that can be output to `std::ostream`, and `value` formats the output according to the state data type. For instance, strings are enclosed in double quotes, and boolean data becomes `true` or `false`. State data of user-defined types are output using `operator<<(std::ostream&, ...)`, which must be supplied by the user.
 
-The `property` is just a data pair with a name and a `value`, where the name is output enclosed in double quotes and `: ` separates the name and the `value`.
+The `jg::test_state::property`, or just `property` going forward, is just a data pair with a name and a `value`, where the name is output enclosed in double quotes and `: ` separates the name and the `value` -- like JSON.
 
-To output structured or sequence data in a JSON-ish format, the functions `object(...)` and `array(...)` are used. The output of an object is a comma separated list of properties enclosed in `{ ... }`, and the output of an array is a comma separated list of values enclosed in `[ ... ]`. Array values are not necessarily of homogenous types.
+To output structured or sequence data in a JSON-ish format, the functions `jg::test_state::object(...)` and `jg::test_state::array(...)`, or `object(...)` and `array(...)` going forward, are used. The output of `object(...)` is a comma-separated list of *properties* enclosed in `{ ... }`, and the output of `array(...)` is a comma-separated list of *values* enclosed in `[ ... ]`. Array values are not necessarily of a homogenous type -- like JSON.
 
-Since both objects and arrays are themselves values, and they both are comprised of values, the semantics of all this is highly recursive -- like JSON.
+The semantics of all this is highly recursive -- like JSON:
 
-Finally, `output` facilitates grouping and formatting state data as simple values, properties, objects, arrays, etc. Each addition of a `value` -- which can be arbitrarily complex by virtue of `property`, `object` and `array` -- to `output` is formatted on a separate line with an optional prefix to fit the general output from test frameworks, etc.
+ - Properties are comprised of named values.
+ - Objects are comprised of properties.
+ - Arrays are comprised of values.
+ - Both objects and arrays are values.
+
+Finally, `jg::test_state::output`, or just `output` going forward, facilitates grouping and formatting state data as simple values, properties, objects, arrays, etc. Each addition of a `value` or a `property` via the `output` constructor or `output::operator+=` is formatted on a separate line with an optional prefix to fit the general output from test frameworks, etc. An added value can be arbitrarily complex by virtue of nesting `object` and `array`. 
+
+For example, outputting state data of user-defined position and velocity types can look like this:
+
+```c++
+moving_particle particle;
+particle.position = {1, 2};
+particle.velocity = {3, 4};
+
+using namespace jg::test_state;
+
+output state;
+state += { "position", object({{ "x", particle.position.x }, { "y", particle.position.y }})};
+state += { "velocity", object({{ "vx", particle.velocity.x }, { "vy", particle.velocity.y }})};
+
+std::cout << state;
+```
+
+Output:
+
+    "position": { "x": 1, "y": 2 }
+    "velocity": { "vx": 3, "vy": 4 }
+
+By using `object(...)` with the `output` constructor, that same state can be output on a single line:
+
+```c++
+using namespace jg::test_state;
+
+output state({ "particle",
+    object({
+        { "position", object({{ "x", particle.position.x }, { "y", particle.position.y }}) },
+        { "velocity", object({{ "vx", particle.velocity.x }, { "vy", particle.velocity.y }}) }
+    })
+});
+
+std::cout << state;
+```
+
+Output:
+
+    "particle": { "position": { "x": 1, "y": 2 }, "velocity": { "vx": 3, "vy": 4 } }
 
 ### `jg::test_state::output`
 
