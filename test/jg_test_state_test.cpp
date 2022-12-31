@@ -96,56 +96,56 @@ static void test_ctors_simple_value()
 static void test_static_ctors_simple_value()
 {
     {
-        output state(prefix{"prefix: "}, vector2d{1,2});
+        output state(prefix_string{"prefix: "}, vector2d{1,2});
         assert(to_string(state) == "prefix: (1,2)");
     }
 
     {
-        output state(prefix{"prefix: "}, 4711);
+        output state(prefix_string{"prefix: "}, 4711);
         assert(to_string(state) == "prefix: 4711");
     }
 
     {
-        output state(prefix{"prefix: "}, true);
+        output state(prefix_string{"prefix: "}, true);
         assert(to_string(state) == "prefix: true");
     }
 
     {
-        output state(prefix{"prefix: "}, false);
+        output state(prefix_string{"prefix: "}, false);
         assert(to_string(state) == "prefix: false");
     }
 
     {
-        output state(prefix{"prefix: "}, "foo");
+        output state(prefix_string{"prefix: "}, "foo");
         assert(to_string(state) == "prefix: \"foo\"");
     }
 
     {
-        output state(prefix{"prefix: "}, std::string{"bar"});
+        output state(prefix_string{"prefix: "}, std::string{"bar"});
         assert(to_string(state) == "prefix: \"bar\"");
     }
 
     {
         const float pi = 3.1415926f;
-        output state(prefix{"prefix: "}, pi);
+        output state(prefix_string{"prefix: "}, pi);
         assert(to_string(state).substr(0, 13) == "prefix: 3.141");
     }
 
     {
         const double pi = 3.1415926;
-        output state(prefix{"prefix: "}, pi);
+        output state(prefix_string{"prefix: "}, pi);
         assert(to_string(state).substr(0, 13) == "prefix: 3.141");
     }
 
     {
         uintptr_t deadbeef = 0x00000000DEADBEEF;
-        output state(prefix{"prefix: "}, reinterpret_cast<void*>(deadbeef));
+        output state(prefix_string{"prefix: "}, reinterpret_cast<void*>(deadbeef));
         assert(to_string(state) == "prefix: 0x00000000deadbeef");
     }
 
     {
         const uintptr_t deadbeef = 0x00000000DEADBEEF;
-        output state(prefix{"prefix: "}, reinterpret_cast<const void*>(deadbeef));
+        output state(prefix_string{"prefix: "}, reinterpret_cast<const void*>(deadbeef));
         assert(to_string(state) == "prefix: 0x00000000deadbeef");
     }
 }
@@ -366,7 +366,7 @@ static void test_prefix()
     }
 
     {
-        output state{prefix{"prefix: "}};
+        output state{prefix_string{"prefix: "}};
         state += 1;
         state += 2;
         state += 3;
@@ -375,7 +375,7 @@ static void test_prefix()
     }
 
     {
-        output state(prefix{"prefix: "});
+        output state(prefix_string{"prefix: "});
         state += 1;
         state += 2;
         state += 3;
@@ -384,27 +384,27 @@ static void test_prefix()
     }
 
     {
-        output state(prefix{"prefix: "}, 1);
+        output state(prefix_string{"prefix: "}, 1);
         assert(to_string(state) == "prefix: 1");
     }
 
     {
-        output state(prefix{"prefix: "}, {"one", 1});
+        output state(prefix_string{"prefix: "}, {"one", 1});
         assert(to_string(state) == "prefix: \"one\": 1");
     }
 
     {
-        output state(prefix{"prefix: "}, object({{"one", 1}}));
+        output state(prefix_string{"prefix: "}, object({{"one", 1}}));
         assert(to_string(state) == "prefix: { \"one\": 1 }");
     }
 
     {
-        output state(prefix{"prefix: "}, array({1, 2}));
+        output state(prefix_string{"prefix: "}, array({1, 2}));
         assert(to_string(state) == "prefix: [ 1, 2 ]");
     }
 
     {
-        output state(prefix{"prefix: "}, array({"two", 2}));
+        output state(prefix_string{"prefix: "}, array({"two", 2}));
         assert(to_string(state) == "prefix: [ \"two\", 2 ]");
     }
 
@@ -534,6 +534,86 @@ static void test_object()
         state += object({{"number", 4711}, {"string", "foo"}});
 
         assert(to_string(state) == R"({ "number": 4711, "string": "foo" })");
+    }
+
+    const property nato_array[] {
+        {"alpha", 1},
+        {"bravo", 2},
+        {"charlie", 3}
+    };
+    const std::vector<property> nato_vector { std::begin(nato_array), std::end(nato_array) };
+
+    {
+        output state;
+        state += object(nato_array);
+
+        assert(to_string(state) == R"({ "alpha": 1, "bravo": 2, "charlie": 3 })");
+    }
+
+    {
+        output state = object(nato_array);
+
+        assert(to_string(state) == R"({ "alpha": 1, "bravo": 2, "charlie": 3 })");
+    }
+
+    {
+        output state;
+        state += object(nato_vector);
+
+        assert(to_string(state) == R"({ "alpha": 1, "bravo": 2, "charlie": 3 })");
+    }
+
+    {
+        output state = object(nato_vector);
+
+        assert(to_string(state) == R"({ "alpha": 1, "bravo": 2, "charlie": 3 })");
+    }
+
+    {
+        output state = object(std::begin(nato_array), std::end(nato_array));
+
+        assert(to_string(state) == R"({ "alpha": 1, "bravo": 2, "charlie": 3 })");
+    }
+
+    {
+        output state;
+        state += object(std::begin(nato_array), std::end(nato_array));
+
+        assert(to_string(state) == R"({ "alpha": 1, "bravo": 2, "charlie": 3 })");
+    }
+
+    {
+        output state;
+        state += object(nato_vector.begin(), nato_vector.end());
+
+        assert(to_string(state) == R"({ "alpha": 1, "bravo": 2, "charlie": 3 })");
+    }
+
+    {
+        output state = object(nato_vector.begin(), nato_vector.end());
+
+        assert(to_string(state) == R"({ "alpha": 1, "bravo": 2, "charlie": 3 })");
+    }
+
+    {
+        output state = object({
+            {"alpha", 1},
+            {"bravo", 2},
+            {"charlie", 3}
+        });
+
+        assert(to_string(state) == R"({ "alpha": 1, "bravo": 2, "charlie": 3 })");
+    }
+
+    {
+        output state;
+        state += object({
+            {"alpha", 1},
+            {"bravo", 2},
+            {"charlie", 3}
+        });
+
+        assert(to_string(state) == R"({ "alpha": 1, "bravo": 2, "charlie": 3 })");
     }
 }
 
