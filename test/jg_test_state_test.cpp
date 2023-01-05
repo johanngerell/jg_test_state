@@ -91,6 +91,19 @@ static void test_ctors_simple_value()
         output state{reinterpret_cast<const void*>(deadbeef)};
         assert(to_string(state) == "0x00000000deadbeef");
     }
+
+    {
+        const std::string foo;
+        output state{&foo};
+        assert(to_string(state).substr(0, 2) == "0x");
+        assert(to_string(state).length() == 18);
+    }
+
+    {
+        const std::string* foo = nullptr;
+        output state{foo};
+        assert(to_string(state) == "null");
+    }
 }
 
 static void test_static_ctors_simple_value()
@@ -408,41 +421,48 @@ static void test_prefix()
         assert(to_string(state) == "prefix: [ \"two\", 2 ]");
     }
 
+    #define PREFIX "[    STATE ] "
+
     {
         output state(google_test_prefix());
         state += 1;
         state += 2;
         state += 3;
 
-        assert(to_string(state) == "[    STATE ] 1\n[    STATE ] 2\n[    STATE ] 3");
+        assert(to_string(state) == \
+            PREFIX "1\n" \
+            PREFIX "2\n" \
+            PREFIX "3");
     }
 
     //
 
     {
         output state(google_test_prefix(), 1);
-        assert(to_string(state) == "[    STATE ] 1");
+        assert(to_string(state) == PREFIX "1");
     }
 
     {
         output state(google_test_prefix(), {"one", 1});
-        assert(to_string(state) == "[    STATE ] \"one\": 1");
+        assert(to_string(state) == PREFIX "\"one\": 1");
     }
 
     {
         output state(google_test_prefix(), object({{"one", 1}}));
-        assert(to_string(state) == "[    STATE ] { \"one\": 1 }");
+        assert(to_string(state) == PREFIX "{ \"one\": 1 }");
     }
 
     {
         output state(google_test_prefix(), array({1, 2}));
-        assert(to_string(state) == "[    STATE ] [ 1, 2 ]");
+        assert(to_string(state) == PREFIX "[ 1, 2 ]");
     }
 
     {
         output state(google_test_prefix(), array({"two", 2}));
-        assert(to_string(state) == "[    STATE ] [ \"two\", 2 ]");
+        assert(to_string(state) == PREFIX "[ \"two\", 2 ]");
     }
+
+    #undef PREFIX
 }
 
 static void test_user_defined_output()
@@ -786,6 +806,22 @@ static void test_value()
     }
 
     {
+        const std::string foo;
+
+        value v1 = &foo;
+        assert(to_string(v1).substr(0, 2) == "0x");
+        assert(to_string(v1).length() == 18);
+
+        const std::string* bar = nullptr;
+
+        value v2 = bar;
+        assert(to_string(v2) == "null");
+
+        value v3 = nullptr;
+        assert(to_string(v3) == "null");
+    }
+
+    {
         value v1 = "foobar";
         assert(to_string(v1) == R"("foobar")");
 
@@ -915,6 +951,30 @@ static void test_property()
     }
 
     {
+        {
+            const std::string foo;
+            
+            property p1("p1", &foo);
+            assert(to_string(p1).substr(0, 8) == R"("p1": 0x)");
+            assert(to_string(p1).length() == 24);
+
+            property p2{"p2", &foo};
+            assert(to_string(p2).substr(0, 8) == R"("p2": 0x)");
+            assert(to_string(p2).length() == 24);
+        }
+
+        {
+            const std::string* foo = nullptr;
+
+            property p1("p1", foo);
+            assert(to_string(p1) == R"("p1": null)");
+
+            property p2{"p2", foo};
+            assert(to_string(p2) == R"("p2": null)");
+        }
+    }
+
+    {
         const uintptr_t dummy_address = 0x00000000deadbeef;
         const void* dummy_pointer = reinterpret_cast<void*>(dummy_address);
 
@@ -992,16 +1052,19 @@ static void test_property()
         assert(to_string(p5) == R"("p5": [ 4711, "4712", 4713, true ])");
 
         property p7 = {"p7", array({4711, "4712", array({false, 0, "", (void*)0}), true})};
-        assert(to_string(p7) == R"("p7": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
+        assert(to_string(p7) == R"("p7": [ 4711, "4712", [ false, 0, "", null ], true ])");
 
         property p8 = {"p8", array({4711, "4712", array({false, 0, "", (const void*)0}), true})};
-        assert(to_string(p8) == R"("p8": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
+        assert(to_string(p8) == R"("p8": [ 4711, "4712", [ false, 0, "", null ], true ])");
 
         property p9 = {"p9", array({4711, "4712", array({false, 0, "", (void*)0}), true})};
-        assert(to_string(p9) == R"("p9": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
+        assert(to_string(p9) == R"("p9": [ 4711, "4712", [ false, 0, "", null ], true ])");
 
         property p10 = {"p10", array({4711, "4712", array({false, 0, "", (const void*)0}), true})};
-        assert(to_string(p10) == R"("p10": [ 4711, "4712", [ false, 0, "", 0x0000000000000000 ], true ])");
+        assert(to_string(p10) == R"("p10": [ 4711, "4712", [ false, 0, "", null ], true ])");
+
+        property p11 = {"p11", array({4711, "4712", array({false, 0, "", nullptr}), true})};
+        assert(to_string(p11) == R"("p11": [ 4711, "4712", [ false, 0, "", null ], true ])");
     }
 }
 

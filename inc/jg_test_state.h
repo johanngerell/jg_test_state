@@ -112,8 +112,11 @@ std::string quote(const std::string& text);
 template <typename T>
 void output_value(std::ostream& stream, const T& value);
 void output_value(std::ostream& stream, const std::string& value);
-void output_value(std::ostream& stream, void* value);
-void output_value(std::ostream& stream, const void* value);
+template <typename T>
+void output_value(std::ostream& stream, T* value);
+template <typename T>
+void output_value(std::ostream& stream, const T* value);
+void output_value(std::ostream& stream, std::nullptr_t);
 void output_value(std::ostream& stream, char* value);
 void output_value(std::ostream& stream, const char* value);
 void output_value(std::ostream& stream, bool value);
@@ -150,7 +153,8 @@ value object(TIterator first_property, TIterator last_property)
 {
     std::string list;
     for (auto it = first_property; it != last_property; ++it)
-        list.append(it != first_property ? ", " : "").append(it->formatted.underlying);
+        list.append(it != first_property ? ", " : "")
+            .append(it->formatted.underlying);
     return value{formatted_string{detail::curly_bracket(list)}};
 }
 
@@ -170,7 +174,8 @@ value array(TIterator first_value, TIterator last_value)
 {
     std::string list;
     for (TIterator it = first_value; it != last_value; ++it)
-        list.append(it != first_value ? ", " : "").append(value{*it}.formatted.underlying);
+        list.append(it != first_value ? ", " : "")
+            .append(value{*it}.formatted.underlying);
     return value{formatted_string{detail::square_bracket(list)}};
 }
 
@@ -182,8 +187,9 @@ value array(const TRange& values)
 
 inline property::property(const std::string& name, const value& value)
 {
-    formatted.underlying.reserve(name.length() + 2 /* the ": " */ + 2 /* the quotes */ + value.formatted.underlying.length());
-    formatted.underlying.append(detail::quote(name)).append(": ").append(value.formatted.underlying);
+    formatted.underlying.append(detail::quote(name))
+                        .append(": ")
+                        .append(value.formatted.underlying);
 }
 
 inline prefix_string google_test_prefix()
@@ -219,25 +225,17 @@ inline output::output(prefix_string prefix, const value& value)
 
 inline output& output::operator+=(const property& property)
 {
-    formatted.underlying.reserve(formatted.underlying.length() +
-                                 (formatted.underlying.empty() ? 0 : 1) /* the '\n' */ +
-                                 prefix.underlying.length() +
-                                 property.formatted.underlying.length());
-    if (!formatted.underlying.empty())
-        formatted.underlying.append(1, '\n');
-    formatted.underlying.append(prefix.underlying).append(property.formatted.underlying);
+    formatted.underlying.append(!formatted.underlying.empty() ? "\n" : "")
+                        .append(prefix.underlying)
+                        .append(property.formatted.underlying);
     return *this;
 }
 
 inline output& output::operator+=(const value& value)
 {
-    formatted.underlying.reserve(formatted.underlying.length() +
-                                 (formatted.underlying.empty() ? 0 : 1) /* the '\n' */ +
-                                 prefix.underlying.length() +
-                                 value.formatted.underlying.length());
-    if (!formatted.underlying.empty())
-        formatted.underlying.append(1, '\n');
-    formatted.underlying.append(prefix.underlying).append(value.formatted.underlying);
+    formatted.underlying.append(!formatted.underlying.empty() ? "\n" : "")
+                        .append(prefix.underlying)
+                        .append(value.formatted.underlying);
     return *this;
 }
 
@@ -245,13 +243,9 @@ namespace detail {
 
 inline std::string surround(const std::string& text, const std::string& left, const std::string& right, const std::string& fill)
 {
-    std::string surrounded;
-    surrounded.reserve(text.length() + (text.empty() ? 0 : (2 * fill.length())) + left.length() + right.length());
-    surrounded.append(left);
-    if (!text.empty())
-        surrounded.append(fill).append(text).append(fill);
-    surrounded.append(right);
-    return surrounded;
+    return text.empty() ?
+           std::string{left}.append(right) :
+           std::string{left}.append(fill).append(text).append(fill).append(right);
 }
 
 inline std::string curly_bracket(const std::string& text)
@@ -280,18 +274,28 @@ inline void output_value(std::ostream& stream, const std::string& value)
     stream << quote(value);
 }
 
-inline void output_value(std::ostream& stream, void* value)
+template <typename T>
+inline void output_value(std::ostream& stream, T* value)
 {
-    output_value(stream, const_cast<const void*>(value));
+    output_value(stream, const_cast<const T*>(value));
 }
 
-inline void output_value(std::ostream& stream, const void* value)
+template <typename T>
+inline void output_value(std::ostream& stream, const T* value)
 {
-    stream << "0x"
-           << std::hex
-           << std::setw(sizeof(void*) * 2) // two hex chars per byte
-           << std::setfill('0')
-           << reinterpret_cast<std::uintptr_t>(value);
+    if (value)
+        stream << "0x"
+               << std::hex
+               << std::setw(sizeof(T*) * 2) // two hex chars per byte
+               << std::setfill('0')
+               << reinterpret_cast<std::uintptr_t>(value);
+    else
+        stream << "null";
+}
+
+inline void output_value(std::ostream& stream, std::nullptr_t)
+{
+    stream << "null";
 }
 
 inline void output_value(std::ostream& stream, char* value)
