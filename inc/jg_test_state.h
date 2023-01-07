@@ -152,9 +152,11 @@ template <typename TIterator>
 value object(TIterator first_property, TIterator last_property)
 {
     std::string list;
-    for (auto it = first_property; it != last_property; ++it)
-        list.append(it != first_property ? ", " : "")
-            .append(it->formatted.underlying);
+    for (auto it = first_property; it != last_property; ++it) {
+        if (it != first_property)
+            list += ", ";
+        list += it->formatted.underlying;
+    }
     return value{formatted_string{detail::curly_bracket(list)}};
 }
 
@@ -173,9 +175,11 @@ template <typename TIterator>
 value array(TIterator first_value, TIterator last_value)
 {
     std::string list;
-    for (TIterator it = first_value; it != last_value; ++it)
-        list.append(it != first_value ? ", " : "")
-            .append(value{*it}.formatted.underlying);
+    for (TIterator it = first_value; it != last_value; ++it) {
+        if (it != first_value)
+            list += ", ";
+        list += value{*it}.formatted.underlying;
+    }
     return value{formatted_string{detail::square_bracket(list)}};
 }
 
@@ -187,9 +191,9 @@ value array(const TRange& values)
 
 inline property::property(const std::string& name, const value& value)
 {
-    formatted.underlying.append(detail::quote(name))
-                        .append(": ")
-                        .append(value.formatted.underlying);
+    formatted.underlying += detail::quote(name);
+    formatted.underlying += ": ";
+    formatted.underlying += value.formatted.underlying;
 }
 
 inline prefix_string google_test_prefix()
@@ -225,17 +229,17 @@ inline output::output(prefix_string prefix, const value& value)
 
 inline output& output::operator+=(const property& property)
 {
-    formatted.underlying.append(!formatted.underlying.empty() ? "\n" : "")
-                        .append(prefix.underlying)
-                        .append(property.formatted.underlying);
+    formatted.underlying += !formatted.underlying.empty() ? "\n" : "";
+    formatted.underlying += prefix.underlying;
+    formatted.underlying += property.formatted.underlying;
     return *this;
 }
 
 inline output& output::operator+=(const value& value)
 {
-    formatted.underlying.append(!formatted.underlying.empty() ? "\n" : "")
-                        .append(prefix.underlying)
-                        .append(value.formatted.underlying);
+    formatted.underlying += !formatted.underlying.empty() ? "\n" : "";
+    formatted.underlying += prefix.underlying;
+    formatted.underlying += value.formatted.underlying;
     return *this;
 }
 
@@ -243,9 +247,14 @@ namespace detail {
 
 inline std::string surround(const std::string& text, const std::string& left, const std::string& right, const std::string& fill)
 {
-    return text.empty() ?
-           std::string{left}.append(right) :
-           std::string{left}.append(fill).append(text).append(fill).append(right);
+    std::string surrounded{left};
+    if (!text.empty()) {
+        surrounded += fill;
+        surrounded += text;
+        surrounded += fill;
+    }
+    surrounded += right;
+    return surrounded;
 }
 
 inline std::string curly_bracket(const std::string& text)
