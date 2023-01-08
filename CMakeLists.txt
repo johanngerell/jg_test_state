@@ -9,15 +9,15 @@ set(CMAKE_CXX_EXTENSIONS        OFF)
 
 include(CTest)
 
-if (MSVC)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-Werror -Wall -Wextra -Wpedantic -Wconversion)
+elseif (MSVC)
     # warning 4668: 'foo' is not defined as a preprocessor macro, replacing with '0' for '#if/#elif'",
     # warning 4514: 'foo': unreferenced inline function has been removed
     # warning 4820: 'foo': 'N' bytes padding added after data member 'bar'
     # warning 4868: compiler may not enforce left-to-right evaluation order in braced initializer list
     # TODO: In debug /Zc:preprocessor /diagnostics:caret /RTCsu /sdl
     add_compile_options(/WX /W4 /Wall /wd4668 /wd4514 /wd4820 /wd4868)
-else ()
-    add_compile_options(-Werror -Wall -Wextra -Wpedantic -Wconversion)
 endif ()
 
 include_directories(${PROJECT_SOURCE_DIR}/inc)
