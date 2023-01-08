@@ -51,14 +51,14 @@ struct property;
 struct output final
 {
     output() = default;
-    output(const value& value);
-    output(const property& property);
+    output(value&& value);
+    output(property&& property);
     output(prefix_string prefix);
-    output(prefix_string prefix, const value& value);
-    output(prefix_string prefix, const property& property);
+    output(prefix_string prefix, value&& value);
+    output(prefix_string prefix, property&& property);
 
-    output& operator+=(const value& value);
-    output& operator+=(const property& property);
+    output& operator+=(value&& value);
+    output& operator+=(property&& property);
 
     prefix_string prefix;
     formatted_string formatted;
@@ -93,7 +93,7 @@ template <typename TRange> value object(const TRange& properties);
 
 struct property final
 {
-    property(const std::string& name, const value& value);
+    property(const std::string& name, value&& value);
 
     formatted_string formatted;
 };
@@ -189,7 +189,7 @@ value array(const TRange& values)
     return array(std::begin(values), std::end(values));
 }
 
-inline property::property(const std::string& name, const value& value)
+inline property::property(const std::string& name, value&& value)
 {
     formatted.underlying += detail::quote(name);
     formatted.underlying += ": ";
@@ -205,29 +205,29 @@ inline output::output(prefix_string prefix)
     : prefix{std::move(prefix)}
 {}
 
-inline output::output(const value& value)
+inline output::output(value&& value)
 {
-    *this += value;
+    *this += std::move(value);
 }
 
-inline output::output(const property& property)
+inline output::output(property&& property)
 {
-    *this += property;
+    *this += std::move(property);
 }
 
-inline output::output(prefix_string prefix, const property& property)
+inline output::output(prefix_string prefix, property&& property)
     : prefix{std::move(prefix)}
 {
-    *this += property;
+    *this += std::move(property);
 }
 
-inline output::output(prefix_string prefix, const value& value)
+inline output::output(prefix_string prefix, value&& value)
     : prefix{std::move(prefix)}
 {
-    *this += value;
+    *this += std::move(value);
 }
 
-inline output& output::operator+=(const property& property)
+inline output& output::operator+=(property&& property)
 {
     formatted.underlying += !formatted.underlying.empty() ? "\n" : "";
     formatted.underlying += prefix.underlying;
@@ -235,7 +235,7 @@ inline output& output::operator+=(const property& property)
     return *this;
 }
 
-inline output& output::operator+=(const value& value)
+inline output& output::operator+=(value&& value)
 {
     formatted.underlying += !formatted.underlying.empty() ? "\n" : "";
     formatted.underlying += prefix.underlying;
