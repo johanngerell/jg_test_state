@@ -11,17 +11,19 @@ namespace test_state {
 
 namespace detail {
 
-/// Default validation policy for a `strong_type` instance. The default behavior is to do nothing.
-/// If invariants or semantics must hold at construction, then create a policy that asserts or throws
-/// an exception in `validate(const T& value)` if they don't hold for `value`.
+/// Default validation policy for a `strong_type` instance. The default behavior is to do no validation,
+/// which is why the body of `validate(const T& value)` is empty. If invariants or semantics must hold at
+/// construction, then create a policy that asserts or throws an exception in `validate(const T& value)`
+/// if they don't hold for `value`. This default empty policy implementation will be optimized away by all
+/// compilers in any optimized build.
 struct strong_type_no_validation final
 {
     template <typename T>
     static void validate(const T&) {}
 };
 
-/// A trivial "strong type" to prevent parameters that semantically aren't values from being resolved as
-/// such due to the value class "auto resolve" template constructor being implicit.
+/// A trivial "strong type" to prevent parameters that semantically aren't test state values from being
+/// resolved as such due to the `value` class "auto resolve" template constructor being implicit.
 /// @tparam T Underlying type of this strong type.
 /// @tparam Tag Tag type that distinguishes different strong types with the same underlying type.
 /// @tparam Validator Validation policy for this strong type. By default, no validation occurs.
@@ -57,9 +59,6 @@ struct output final
     output(prefix_string prefix, const value& value);
     output(prefix_string prefix, const property& property);
 
-    output& operator+=(const value& value);
-    output& operator+=(const property& property);
-
     prefix_string prefix;
     formatted_string formatted;
 };
@@ -68,6 +67,9 @@ inline std::ostream& operator<<(std::ostream& stream, const output& output)
 {
     return stream << output.formatted.underlying;
 }
+
+output& operator+=(output& output, const property& property);
+output& operator+=(output& output, const value& value);
 
 struct value final
 {
@@ -227,20 +229,20 @@ inline output::output(prefix_string prefix, const value& value)
     *this += value;
 }
 
-inline output& output::operator+=(const property& property)
+inline output& operator+=(output& output, const property& property)
 {
-    formatted.underlying += !formatted.underlying.empty() ? "\n" : "";
-    formatted.underlying += prefix.underlying;
-    formatted.underlying += property.formatted.underlying;
-    return *this;
+    output.formatted.underlying += !output.formatted.underlying.empty() ? "\n" : "";
+    output.formatted.underlying += output.prefix.underlying;
+    output.formatted.underlying += property.formatted.underlying;
+    return output;
 }
 
-inline output& output::operator+=(const value& value)
+inline output& operator+=(output& output, const value& value)
 {
-    formatted.underlying += !formatted.underlying.empty() ? "\n" : "";
-    formatted.underlying += prefix.underlying;
-    formatted.underlying += value.formatted.underlying;
-    return *this;
+    output.formatted.underlying += !output.formatted.underlying.empty() ? "\n" : "";
+    output.formatted.underlying += output.prefix.underlying;
+    output.formatted.underlying += value.formatted.underlying;
+    return output;
 }
 
 namespace detail {
