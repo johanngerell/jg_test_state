@@ -72,7 +72,7 @@ inline std::ostream& operator<<(std::ostream& stream, const output& output)
 struct value final
 {
     explicit value(formatted_string formatted);
-    template <typename T> value(const T& value);
+    template <typename T> value(T&& value);
 
     formatted_string formatted;
 };
@@ -128,7 +128,7 @@ inline value::value(formatted_string formatted)
 {}
 
 template <typename T>
-value::value(const T& value)
+value::value(T&& value)
 {
     static_assert(!std::is_same<property, T>::value, "A 'value' cannot be constructed from a 'property'");
     static_assert(!std::is_same<prefix_string, T>::value, "A 'value' cannot be constructed from a 'prefix_string'");

@@ -833,6 +833,14 @@ static void test_value()
         value v1 = std::string{"foobar"};
         assert(to_string(v1) == R"("foobar")");
 
+        value v1a{std::string{"foobar"}};
+        assert(to_string(v1a) == R"("foobar")");
+
+        value v1b(std::string{"foobar"});
+        assert(to_string(v1b) == R"("foobar")");
+
+        assert(to_string(value{std::string{"foobar"}}) == R"("foobar")");
+
         value v2 = array({std::string{"foobar"}});
         assert(to_string(v2) == R"([ "foobar" ])");
     }
