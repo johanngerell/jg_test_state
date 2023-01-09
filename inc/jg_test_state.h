@@ -3,6 +3,7 @@
 #include <ostream>
 #include <sstream>
 #include <iomanip>
+#include <iterator>
 #include <string>
 #include <initializer_list>
 
@@ -63,11 +64,7 @@ struct output final
     formatted_string formatted;
 };
 
-inline std::ostream& operator<<(std::ostream& stream, const output& output)
-{
-    return stream << output.formatted.underlying;
-}
-
+std::ostream& operator<<(std::ostream& stream, const output& output);
 output& operator+=(output& output, const property& property);
 output& operator+=(output& output, const value& value);
 
@@ -79,19 +76,19 @@ struct value final
     formatted_string formatted;
 };
 
-inline std::ostream& operator<<(std::ostream& stream, const value& value)
-{
-    return stream << value.formatted.underlying;
-}
-
+std::ostream& operator<<(std::ostream& stream, const value& value);
 value array(std::initializer_list<value> values);
-template <typename TIterator> value array(TIterator first_value, TIterator last_value);
-template <typename TRange> value array(const TRange& values);
+template <typename TIterator>
+value array(TIterator first_value, TIterator last_value);
+template <typename TRange>
+value array(const TRange& values);
 
 value object(property property);
 value object(std::initializer_list<property> properties);
-template <typename TIterator> value object(TIterator first_property, TIterator last_property);
-template <typename TRange> value object(const TRange& properties);
+template <typename TIterator>
+value object(TIterator first_property, TIterator last_property);
+template <typename TRange>
+value object(const TRange& properties);
 
 struct property final
 {
@@ -100,10 +97,9 @@ struct property final
     formatted_string formatted;
 };
 
-inline std::ostream& operator<<(std::ostream& stream, const property& property)
-{
-    return stream << property.formatted.underlying;
-}
+std::ostream& operator<<(std::ostream& stream, const property& property);
+
+// Implementation below this line
 
 namespace detail {
 
@@ -140,6 +136,11 @@ value::value(const T& value)
     formatted.underlying = stream.str();
 }
 
+inline std::ostream& operator<<(std::ostream& stream, const value& value)
+{
+    return stream << value.formatted.underlying;
+}
+
 inline value object(property property)
 {
     return value{formatted_string{detail::curly_bracket(property.formatted.underlying)}};
@@ -153,11 +154,14 @@ inline value object(std::initializer_list<property> properties)
 template <typename TIterator>
 value object(TIterator first_property, TIterator last_property)
 {
+    static_assert(std::is_same<property, std::iterator_traits<TIterator>::value_type>::value, "Invalid 'property' iterator");
     std::string list;
-    for (auto it = first_property; it != last_property; ++it) {
-        if (it != first_property)
+    if (first_property != last_property) {
+        list += first_property->formatted.underlying;
+        for (auto it = first_property + 1; it != last_property; ++it) {
             list += ", ";
-        list += it->formatted.underlying;
+            list += it->formatted.underlying;
+        }
     }
     return value{formatted_string{detail::curly_bracket(list)}};
 }
@@ -177,10 +181,12 @@ template <typename TIterator>
 value array(TIterator first_value, TIterator last_value)
 {
     std::string list;
-    for (TIterator it = first_value; it != last_value; ++it) {
-        if (it != first_value)
+    if (first_value != last_value) {
+        list += value{*first_value}.formatted.underlying;
+        for (auto it = first_value + 1; it != last_value; ++it) {
             list += ", ";
-        list += value{*it}.formatted.underlying;
+            list += value{*it}.formatted.underlying;
+        }
     }
     return value{formatted_string{detail::square_bracket(list)}};
 }
@@ -196,6 +202,11 @@ inline property::property(const std::string& name, const value& value)
     formatted.underlying += detail::quote(name);
     formatted.underlying += ": ";
     formatted.underlying += value.formatted.underlying;
+}
+
+inline std::ostream& operator<<(std::ostream& stream, const property& property)
+{
+    return stream << property.formatted.underlying;
 }
 
 inline prefix_string google_test_prefix()
@@ -229,9 +240,15 @@ inline output::output(prefix_string prefix, const value& value)
     *this += value;
 }
 
+inline std::ostream& operator<<(std::ostream& stream, const output& output)
+{
+    return stream << output.formatted.underlying;
+}
+
 inline output& operator+=(output& output, const property& property)
 {
-    output.formatted.underlying += !output.formatted.underlying.empty() ? "\n" : "";
+    if (!output.formatted.underlying.empty())
+        output.formatted.underlying += '\n';
     output.formatted.underlying += output.prefix.underlying;
     output.formatted.underlying += property.formatted.underlying;
     return output;
@@ -239,7 +256,8 @@ inline output& operator+=(output& output, const property& property)
 
 inline output& operator+=(output& output, const value& value)
 {
-    output.formatted.underlying += !output.formatted.underlying.empty() ? "\n" : "";
+    if (!output.formatted.underlying.empty())
+        output.formatted.underlying += '\n';
     output.formatted.underlying += output.prefix.underlying;
     output.formatted.underlying += value.formatted.underlying;
     return output;
