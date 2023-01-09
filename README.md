@@ -219,7 +219,7 @@ Output:
 
 ### Adding user-defined data
 
-As an exmaple, the typical output of state data of user-defined position and velocity types can look like this:
+As an example, the typical output of state data of user-defined position and velocity types can look like this:
 
 ```c++
 moving_particle particle;
