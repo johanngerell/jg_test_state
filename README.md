@@ -63,14 +63,14 @@ This means that a user-defined type can be recorded as test state as long as the
 
 There are three classes to use:
 
-  - [`jg::test_state::value`](jgtest_statevalue)
-  - [`jg::test_state::property`](jgtest_stateproperty)
-  - [`jg::test_state::output`](jgtest_stateoutput)
+  - `jg::test_state::value`
+  - `jg::test_state::property`
+  - `jg::test_state::output`
 
 And two helper functions (with overloads) that create specific *kinds* of `jg::test_state::value` instances -- like JSON:
 
-  - [`jg::test_state::object(...)`](jgtest_stateobject)
-  - [`jg::test_state::array(...)`](jgtest_statearray)
+  - `jg::test_state::object(...)`
+  - `jg::test_state::array(...)`
 
 The workhorse here is `jg::test_state::value`, or just `value` going forward. It outputs the actual state data to its underlying string storage. In contrast to a regular JSON value, the state data can be of any type that can be output to `std::ostream`, and `value` formats the output according to the state data type. For instance, strings are enclosed in double quotes, and boolean data becomes `true` or `false`. State data of user-defined types are output using `operator<<(std::ostream&, ...)`, which must be supplied by the user.
 
@@ -301,7 +301,7 @@ Output:
 
 ### Adding objects
 
-An object is ideal to output structured state data -- think of a conventional data `struct` with or without nested `struct` members -- that doesn't have its own stream output operator (see [Adding user-defined values](#adding-user-defined-values)).
+An object is ideal to output structured state data -- think of a conventional data `struct` with or without nested `struct` members -- that doesn't have its own stream output operator (see [Adding user-defined data](#adding-user-defined-data)).
 
 For example, let's say we have a moving particle (or, more like a dot on a pixel grid, since we use `int` and not floating point values), described by its position and velocity:
 
