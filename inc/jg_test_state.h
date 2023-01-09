@@ -154,7 +154,7 @@ inline value object(std::initializer_list<property> properties)
 template <typename TIterator>
 value object(TIterator first_property, TIterator last_property)
 {
-    static_assert(std::is_same<property, std::iterator_traits<TIterator>::value_type>::value, "Invalid 'property' iterator");
+    static_assert(std::is_same<property, typename std::iterator_traits<TIterator>::value_type>::value, "Invalid 'property' iterator");
     std::string list;
     if (first_property != last_property) {
         list += first_property->formatted.underlying;
